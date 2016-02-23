@@ -1,4 +1,5 @@
 <html>
+<head>
 <link href='https://fonts.googleapis.com/css?family=Michroma' rel='stylesheet' type='text/css'>
 <style>
 .ads{
@@ -7,7 +8,10 @@
   color: #db4224;
 }
 </style>
+</head>
+<body>
 <center class="ads">ads</center>
+</body>
 </html>
 
 # This repository, 'ads',  is an ambiguous acronym. 
