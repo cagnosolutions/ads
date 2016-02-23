@@ -1,7 +1,7 @@
 <div align="center"><img src="https://docs.google.com/drawings/d/1E7Ex2Vc7TpnXffN2nlZ4IEBGSuWwaiAROibe4vuzOZY/pub?w=167&amp;h=114"/></div>
+<h2><center>an ambiguous acronym</center></h2> 
 
-## <center>an ambiguous acronym</center> 
-#### It stands for 'algorithms and data structures' or 'advanced data structures' 
+#### It stands for 'algorithms and data structures' or 'advanced data structures'</h4>
 
 >It contains data structures, algorithms, and helpers for the go programming language. The items in this package are things that I have come across and needed to use at some time or another that are not contained within the standard library (as of go 1.5.) Most if not all of them have been used in some type of production environment. Most of them should not be considered thread-safe, they will note if they are.
 
