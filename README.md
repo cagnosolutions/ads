@@ -1,4 +1,4 @@
-<iframe width="250" height="400" src="http://cagnosolutions.com/"></iframe>
+<div align="center"><img src="https://docs.google.com/drawings/d/1E7Ex2Vc7TpnXffN2nlZ4IEBGSuWwaiAROibe4vuzOZY/pub?w=167&amp;h=114"/></div>
 
 # This repository, 'ads',  is an ambiguous acronym. 
 ### It stands for 'algorithms and data structures' or 'advanced data structures' 
