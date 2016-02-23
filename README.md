@@ -1,19 +1,3 @@
-<html>
-<head>
-<link href='https://fonts.googleapis.com/css?family=Michroma' rel='stylesheet' type='text/css'>
-<style>
-.ads{
-  font-family: 'Michroma', sans-serif;
-  font-size: 24px;
-  color: #db4224;
-}
-</style>
-</head>
-<body>
-<center class="ads">ads</center>
-</body>
-</html>
-
 # This repository, 'ads',  is an ambiguous acronym. 
 ### It stands for 'algorithms and data structures' or 'advanced data structures' 
 
