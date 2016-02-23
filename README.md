@@ -1,3 +1,4 @@
+<html>
 <link href='https://fonts.googleapis.com/css?family=Michroma' rel='stylesheet' type='text/css'>
 <style>
 .ads{
@@ -7,6 +8,7 @@
 }
 </style>
 <center class="ads">ads</center>
+</html>
 
 # This repository, 'ads',  is an ambiguous acronym. 
 ### It stands for 'algorithms and data structures' or 'advanced data structures' 
