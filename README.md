@@ -1,4 +1,4 @@
-<div align="center"><img src="https://docs.google.com/drawings/d/1E7Ex2Vc7TpnXffN2nlZ4IEBGSuWwaiAROibe4vuzOZY/pub?w=167&amp;h=114"/></div>
+<div align="center"><img src="https://docs.google.com/drawings/d/1E7Ex2Vc7TpnXffN2nlZ4IEBGSuWwaiAROibe4vuzOZY/pub?w=333&amp;h=229"/></div>
 
 ##### It's an ambiguous acronym standing for 'algorithms and data structures' or 'advanced data structures'
 
