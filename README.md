@@ -1,5 +1,5 @@
+<link href='https://fonts.googleapis.com/css?family=Michroma' rel='stylesheet' type='text/css'>
 <style>
-@import url(https://fonts.googleapis.com/css?family=Michroma);
 .ads{
   font-family: 'Michroma', sans-serif;
   font-size: 24px;
