@@ -5,12 +5,12 @@
 
 It currently contains the following data structures/algorithms:
 
-- 'ads/bpt' is a lexigraphically ordered b+tree using []byte for both the internal keys as well as the leaf node values.
+- <a href="bpt">'ads/bpt'</a> is a lexigraphically ordered b+tree using []byte for both the internal keys as well as the leaf node values.
 
-- 'ads/mio' is a fixed-size (4KB) key/value block-style storge system in which a key/value pair is stored on a single block. Keys have been limited to a maximum length of 255 bytes; both keys and values are implemented as a []byte. It utilizes memory mapping directly to a backing file for quick reads and writes. It also attempts to re-use deleted blocks and automatically grows the backing file exponentially as it fills.
+- <a href="mio">'ads/mio'</a> is a fixed-size (4KB) key/value block-style storge system in which a key/value pair is stored on a single block. Keys have been limited to a maximum length of 255 bytes; both keys and values are implemented as a []byte. It utilizes memory mapping directly to a backing file for quick reads and writes. It also attempts to re-use deleted blocks and automatically grows the backing file exponentially as it fills.
 
-- 'ads/ohm' is a hashtable implementation that preserves order lexigraphically. It requires you to supply a comparator function (func(i, j) byte) as well as your custom key and value types.
+- <a href="ohm">'ads/ohm'</a> is a hashtable implementation that preserves order lexigraphically. It requires you to supply a comparator function (func(i, j) byte) as well as your custom key and value types.
 
-- 'ads/shm' is a thread-safe hashtable that enforces mutual exclusion through sharding and locking of the buckets. The sharding level can be configured in order keep the hashtable quick and also space efficient under different levels of concurrency or paralellism.
+- <a href="shm">'ads/shm'</a> is a thread-safe hashtable that enforces mutual exclusion through sharding and locking of the buckets. The sharding level can be configured in order keep the hashtable quick and also space efficient under different levels of concurrency or paralellism.
 
-- 'ads/xdb' is a document based (nosql) database engine that can be run as a simple embedded solution, or alternativly as a fully stand-alone database server utilizing the driver. It utilizes a basic binary protocol for both transmiting data over the wire as well as for storing the documents. The keys have been limited to a maximum length of 255 bytes.
+- <a href="xdb">'ads/xdb'</a> is a document based (nosql) database engine that can be run as a simple embedded solution, or alternativly as a fully stand-alone database server utilizing the driver. It utilizes a basic binary protocol for both transmiting data over the wire as well as for storing the documents. The keys have been limited to a maximum length of 255 bytes.
