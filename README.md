@@ -1,3 +1,13 @@
+<style>
+@import url(https://fonts.googleapis.com/css?family=Michroma);
+.ads{
+  font-family: 'Michroma', sans-serif;
+  font-size: 24px;
+  color: #db4224;
+}
+</style>
+<center class="ads">ads</center>
+
 # This repository, 'ads',  is an ambiguous acronym. 
 ### It stands for 'algorithms and data structures' or 'advanced data structures' 
 
