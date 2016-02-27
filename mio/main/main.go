@@ -1,18 +1,23 @@
 package main
 
-import "github.com/cagnosolutions/ads/mio"
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/cagnosolutions/ads/mio"
+)
 
 func main() {
+	ts := time.Now().UnixNano()
 	m := mio.Map("m.db")
-	m.Set([]byte(`0`), 0)
-	m.Set([]byte(`1`), 1)
-	m.Set([]byte(`2`), 2)
-	m.Set([]byte(`3`), 3)
-	m.Set([]byte(`4`), 4)
-	m.Set([]byte(`5`), 5)
-	m.Set([]byte(`6`), 6)
-	m.Set([]byte(`7`), 7)
-	m.Set([]byte(`8`), 8)
-	m.Set([]byte(`9`), 9)
+	for i := 0; i < (4096*64)-1; i++ {
+		k := fmt.Sprintf(`foo-%d`, i)
+		v := fmt.Sprintf(`{"id":%d,"desc":"some description for id-%d"}`, i, i)
+		if err := m.Set([]byte(k), []byte(v), i); err != nil {
+			log.Panicf("[0]: %s\n", err)
+		}
+	}
 	m.Unmap()
+	fmt.Printf("Took: %d ms\n", (time.Now().UnixNano()-ts)/1000/1000)
 }
