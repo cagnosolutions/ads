@@ -9,13 +9,17 @@ import (
 )
 
 var (
+	// TODO: May be removed
 	MAX_KLEN = 0xff         // max key size 255 bytes
-	MAX_HLEN = 0x04         // max header size 4 bytes
 	NIL_BLCK = []byte{0x00} // empty block header byte
+
+	MAX_HLEN = 0x04 // max header size 4 bytes TODO: may change size
+
 	MIN_MMAP = 0xffffff + 1 // 16MB
 	SYS_PAGE = int64(syscall.Getpagesize())
 	NIL_PAGE = make([]byte, SYS_PAGE, SYS_PAGE)
 
+	// TODO: remove??
 	KeyNilErr error = errors.New("Key was nil, or corrupt")
 	DocNilErr error = errors.New("Doc was nil, or corrupt")
 	KeyLenErr error = errors.New("Key exceeded MAX_KLEN")
@@ -26,7 +30,7 @@ type mapper struct {
 	path string
 	file *os.File
 	size int64
-	docs int64
+	pags int64
 	data []byte
 	gaps []int
 }
@@ -57,6 +61,7 @@ func Map(path string) *mapper {
 		data: b,
 		gaps: make([]int, 0),
 	}
+
 	//m.initialize()
 	//m.growAndRemap()
 	//fmt.Printf("docs: %d, gaps: %d (%v)\n", m.docs, len(m.gaps), m.gaps)
@@ -65,7 +70,7 @@ func Map(path string) *mapper {
 
 // initialize the mapper; fill out the document count
 // as well as the gap list when the mapper is started
-func (m *mapper) initialize() {
+/*func (m *mapper) _initialize() {
 	if m.size > 0 {
 		lst := int(m.size - SYS_PAGE)
 		for pos := 0; pos <= lst; pos += int(SYS_PAGE) {
@@ -73,10 +78,29 @@ func (m *mapper) initialize() {
 				lst -= int(SYS_PAGE)
 			}
 			if m.data[pos] != NIL_BLCK[0] {
-				m.docs++
+				m.pags++
 			}
 		}
 		m.gaps = append(m.gaps, 0, lst)
+	}
+}*/
+
+func (m *mapper) initialize() {
+	if m.size > 0 {
+		lst, pos := int(m.size-SYS_PAGE), 0
+		for pos <= lst {
+			if m.data[lst] == NIL_BLCK[0] {
+				lst -= int(SYS_PAGE)
+			}
+			if m.data[pos] != NIL_BLCK[0] {
+				pgs := m.data[pos+1]
+				m.pags += int64(pgs)
+				pos += int(pgs) * int(SYS_PAGE)
+			} else {
+				m.gaps = append(m.gaps, pos/int(SYS_PAGE))
+				pos += int(SYS_PAGE)
+			}
+		}
 	}
 }
 
@@ -110,63 +134,45 @@ func (m *mapper) find(pages int) (int, bool) {
 			}
 		}
 	}
-	// check to see if there are ANY gaps at the end that
-	// we can use as in index, it not, move to next check
-	if len(m.gaps) > 0 {
-		offset := m.gaps[len(m.gaps)-1]
-		if int64(m.gaps[len(m.gaps)-1]+pages)*SYS_PAGE < m.size {
-			m.gaps = append(m.gaps[:len(m.gaps)-1], m.gaps[len(m.gaps):]...)
-			return offset, true
-		}
-		return offset, false
-	}
-	// do linear search for next index, and see if we need to grow
-	// ?? BRAIN NO WORK...
-
-	return 0, false
+	// get last page offset compare add pages to offest
+	// and compare to currrent size
+	lst := int(m.pags) + len(m.gaps)
+	pos := int64(lst+pages) * SYS_PAGE
+	return lst, pos < m.size
 }
 
-/*
-	pos, ok := m.find(pagesize)
+func (m *mapper) Find(offset, pages int) int {
+	// NOTE: in the case of add
+	if offset == -1 {
+		offset, ok := m.find(pages)
+		if !ok {
+			m.grow()
+		}
+		return offset
+	}
+	// NOTE: in the case of set
+	pgs := m.del(offset) // old pages
+	// if document update is smaller than original
+	if pages < pgs {
+		pgcnt := pgs - pages
+		// add pgcnt to m.gaps & sort
+		m.addGaps(offset+pages, pgcnt)
+		return offset
+	}
+	// updated document fits in current pages
+	// return offset
+	if pages == pgs {
+		return offset
+	}
+	// add pages to gaps list and search
+	// gaps list for a fit.
+	// grows file if needed and returns last page if no room in gaps
+	m.addGaps(offset, pgs)
+	offset, ok := m.find(pages)
 	if !ok {
 		m.grow()
 	}
-	write(data, pos)
-*/
-
-func (m *mapper) Find(offset, pagesize int) int {
-	return -1 // TODO: STUFF BELOW
-
-	/*
-		// add case
-		if offset == -1 {
-			n := checkGaps(pagesize)
-			if n == -1 {
-				// find last index
-				// NOTE: add m.pages
-				// ie. m.pages * SYS_PAGE + 1
-				// if
-			}
-		}
-		// set case
-		pos := offset * SYS_PAGE
-		pgs := m.data[pos+1]
-		// zero out pgs worth of data
-		if pagesize < pgs {
-			pgcnt := pgs - pagesize
-			// add pgcnt to m.gaps & sort
-			return offset
-		}
-		if pagesize == pgs {
-			return offset
-		}
-		if pagesize > pgs {
-			// add pages to gaps list and search
-			// gaps list for a fit. if gaps list
-			// returns -1, find last index linerally
-		}
-		//
-	*/
+	return offset
 }
 
 // writes a key value pair at the block offset provided. It
@@ -213,27 +219,13 @@ func (m *mapper) _Set(key, val []byte, offset int) int {
 // as well as grow the file and remap if nessicary. It will
 // also check to see if the record can be placed in the gap
 // list (if there are any entries in the gap list)
-func (m *mapper) _Add(key, val []byte) error {
-	block, err := Block(key, val)
-	if err != nil {
-		return err
-	}
-	pos := m.docs * SYS_PAGE
-	// check gap list to see if we can use an empty block
-	if len(m.gaps) > 0 {
-		// gap list contains items, sort if nessicary
-		if !sort.IntsAreSorted(m.gaps) {
-			sort.Ints(m.gaps)
-		}
-		// shift out a position space closest to the front
-		pos = int64(m.gaps[0]) * SYS_PAGE
-		m.gaps = m.gaps[1:]
-	} else {
-		m.growAndRemap() // empty gap list, try to grow and remap
-	}
+func (m *mapper) _Add(dat []byte) error {
+	pages := toPageSize(int64(len(dat))) / SYS_PAGE
+	offset := m.Find(-1, int(pages))
+	pos := int64(offset) * SYS_PAGE
 	// write data to provided position
-	copy(m.data[pos:pos+SYS_PAGE], block) // NOTE:OUT OF BOUNDS ON INIT TEST
-	m.docs++
+	copy(m.data[pos:pos+SYS_PAGE], dat) // NOTE:OUT OF BOUNDS ON INIT TEST
+	m.pages++
 	return nil
 }
 
@@ -249,7 +241,12 @@ func (m *mapper) Get(offset int) []byte {
 }
 
 // delete a document and add to gap list
-func (m *mapper) Del(offset int) int {
+func (m *mapper) Del(offset int) {
+	pgs := m.del(offset)
+	m.addGaps(offset, pgs)
+}
+
+func (m *mapper) del(offset int) int {
 	// get position based on offset
 	pos := int64(offset) * SYS_PAGE
 	// get how many pages document is using
@@ -258,15 +255,17 @@ func (m *mapper) Del(offset int) int {
 	siz := int64(pgs) * SYS_PAGE
 	// write zero page data across document size of siz
 	copy(m.data[pos:pos+siz], make([]byte, siz, siz))
-	// add deleted page offsets back to gap list
-	for i := 0; i < pgs; i++ {
+	return pgs
+}
+
+func (m *mapper) addGaps(offset, pages int) {
+	for i := 0; i < pages; i++ {
 		m.gaps = append(m.gaps, offset+i)
 	}
 	// sort gap list now that we added to it
 	if !sort.IntsAreSorted(m.gaps) {
 		sort.Ints(m.gaps)
 	}
-	return pgs
 }
 
 // flush data to disk in an async fashion
@@ -288,7 +287,7 @@ func (m *mapper) Unmap() {
 	m.data = nil
 }
 
-func (m *mapper) growAndRemap() {
+func (m *mapper) grow() {
 	if m.docs < m.size/SYS_PAGE {
 		return
 	}
