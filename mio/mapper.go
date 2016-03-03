@@ -1,6 +1,7 @@
 package mio
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -13,6 +14,16 @@ var (
 	MIN_MMAP = 0xffffff + 1 // 16MB
 	SYS_PAGE = int64(syscall.Getpagesize())
 )
+
+func (m *mapper) debug() {
+	fmt.Printf("mapper info\n===========\n")
+	fmt.Printf("path: %s\n", m.path)
+	fmt.Printf("file: %s\n", m.file.Name())
+	fmt.Printf("size: %d\n", m.size)
+	fmt.Printf("pags: %d\n", m.pags)
+	fmt.Printf("data: [omitted]\n")
+	fmt.Printf("gaps: %v\n", m.gaps)
+}
 
 // mapper struct
 type mapper struct {
@@ -54,7 +65,7 @@ func Map(path string) *mapper {
 		data: b,
 		gaps: make([]int, 0),
 	}
-
+	m.debug()
 	//m.initialize()
 	//m.growAndRemap()
 	//fmt.Printf("docs: %d, gaps: %d (%v)\n", m.docs, len(m.gaps), m.gaps)
@@ -87,27 +98,28 @@ func (m *mapper) initialize() {
 // remap if nessicary. If the provided position happens to be
 // in the current gap list it will also remove that entry.
 func (m *mapper) Set(dat []byte, offset int) bool {
-	// verify sanity of dat; if !ok, print log and return
-	doc, ok := verify(dat)
+	// create new document; sanitize and prepend header based
+	// on the raw dat supplied. if !ok, print log and return
+	doc, ok := document(dat)
 	if !ok {
-		log.Println("data contains improper or malformed header")
+		log.Println("data exceeded maximum page limit")
 		return false
 	}
 	// read header to get docs page count
 	pgs := int(doc[1])
 	// calculate proper position to set based on
 	// doc's page count and provided offset
-	pos := m.positionToSet(pgs, offset)
+	pos, pgdif := m.positionToSet(pgs, offset)
 	// write data to provided position
-	copy(m.data[pos:pos+int64(pgs*SYS_PAGE)], doc)
-	m.pags += int64(pgs) // TODO: update pages correctly
+	copy(m.data[pos:pos+(pgs*int(SYS_PAGE))], doc)
+	m.pags += int64(pgdif)
 	return true
 }
 
 // return a usable offset based on the offset
 // provided and the number of pages the data
 // requires in order to perform a set / update.
-func (m *mapper) positionToSet(offset, pages int) int64 {
+func (m *mapper) positionToSet(offset, pages int) (int, int) {
 	// wipe all pages of the document located at
 	// the offset provided so we are left with a
 	// clean slate. return the newly wiped pages.
@@ -118,13 +130,13 @@ func (m *mapper) positionToSet(offset, pages int) int64 {
 		// add difference back into gap list
 		m.addOffset(offset+pages, pgs-pages)
 		// re-use same position in offset, it fits
-		return offset * SYS_PAGE
+		return offset * int(SYS_PAGE), pages - pgs
 	}
 	// if the number of pages provided is exactly the
 	// same number as the freshly wiped pages...
 	if pages == pgs {
 		// re-use same position in offset, it fits
-		return offset * SYS_PAGE
+		return offset * int(SYS_PAGE), 0
 	}
 	// ...otherwise, the number of pages provided is
 	// greater than the freshly wiped pages; so add
@@ -137,7 +149,7 @@ func (m *mapper) positionToSet(offset, pages int) int64 {
 	if !ok {
 		m.grow()
 	}
-	return offset * SYS_PAGE
+	return offset * int(SYS_PAGE), pages - pgs
 }
 
 // writes a blob of data. It will increment the page count,
@@ -156,14 +168,14 @@ func (m *mapper) Add(dat []byte) bool {
 	// calculate proper position to add based on doc's page count
 	pos := m.positionToAdd(pgs)
 	// write data to provided position
-	copy(m.data[pos:pos+int64(pgs*SYS_PAGE)], doc)
+	copy(m.data[pos:pos+(pgs*int(SYS_PAGE))], doc)
 	m.pags += int64(pgs)
 	return true
 }
 
 // calculate proper position for document to be added
 // based on documents page count; grow file if needed
-func (m *mapper) positionToAdd(pages int) int64 {
+func (m *mapper) positionToAdd(pages int) int {
 	// return a usable offset based on the
 	// number of pages the data requires
 	offset, ok := m.getOffset(pages)
@@ -172,7 +184,7 @@ func (m *mapper) positionToAdd(pages int) int64 {
 		m.grow()
 	}
 	// return position of offset in mapping
-	return offset * SYS_PAGE
+	return offset * int(SYS_PAGE)
 }
 
 // return a document based on its offset key
@@ -192,7 +204,7 @@ func (m *mapper) Get(offset int) []byte {
 func (m *mapper) Del(offset int) {
 	pages := m.del(offset)
 	m.addOffset(offset, pages)
-	m.pags -= pages
+	m.pags -= int64(pages)
 }
 
 // delete, ie. write nil bytes, starting at offset
@@ -226,7 +238,7 @@ func (m *mapper) addOffset(offset, pages int) {
 // checks the gap list for potential gaps it can
 // reuse. if a match is found, it is removed from
 // the gap list and returned (with bool) for use
-func (m *mapper) getOffet(pages int) (int, bool) {
+func (m *mapper) getOffset(pages int) (int, bool) {
 	// check to see if there are consecutive gaps
 	// that we can use, if not, get last offset...
 	if len(m.gaps) >= pages {
@@ -284,10 +296,10 @@ func (m *mapper) grow() {
 // sanitize/prepend 2 byte header (opt, pgs)
 func document(data []byte) ([]byte, bool) {
 	size := len(data)
-	if size < 1 || size+2 > 0xff*SYS_PAGE {
+	if size < 1 || size+2 > 0xff*int(SYS_PAGE) {
 		return nil, false
 	}
-	pages := (size + 2 + SYS_PAGE - 1) &^ (SYS_PAGE - 1) / SYS_PAGE
+	pages := (size + 2 + int(SYS_PAGE) - 1) &^ (int(SYS_PAGE) - 1) / int(SYS_PAGE)
 	return append([]byte{0x01, byte(pages)}, data...), true
 }
 
