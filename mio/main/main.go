@@ -20,4 +20,11 @@ func main() {
 	}
 	m.Unmap()
 	fmt.Printf("Took: %d ms\n", (time.Now().UnixNano()-ts)/1000/1000)
+	pause()
+}
+
+func pause() {
+	fmt.Println("Press any key to continue...")
+	var n byte
+	fmt.Scanln(&n)
 }

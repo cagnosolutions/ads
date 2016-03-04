@@ -15,14 +15,16 @@ var (
 	SYS_PAGE = int64(syscall.Getpagesize())
 )
 
-func (m *mapper) debug() {
-	fmt.Printf("mapper info\n===========\n")
-	fmt.Printf("path: %s\n", m.path)
-	fmt.Printf("file: %s\n", m.file.Name())
-	fmt.Printf("size: %d\n", m.size)
-	fmt.Printf("pags: %d\n", m.pags)
-	fmt.Printf("data: [omitted]\n")
-	fmt.Printf("gaps: %v\n", m.gaps)
+func (m *mapper) String() string {
+	str := "mapper info\n" +
+		"===========\n" +
+		"path: " + m.path + "\n" +
+		"file: " + m.file.Name() + "\n" +
+		"size: " + fmt.Sprintf("%d\n", m.size) +
+		"pags: " + fmt.Sprintf("%d\n", m.pags) +
+		"data: " + fmt.Sprintf("%d\n", len(m.data)) +
+		"gaps: " + fmt.Sprintf("%v\n", m.gaps)
+	return str
 }
 
 // mapper struct
@@ -50,8 +52,10 @@ func Map(path string) *mapper {
 		panic(err)
 	}
 	size := fi.Size()
+	var fresh bool
 	if size == 0 {
 		size = resize(fd.Fd(), align(int64(MIN_MMAP)))
+		fresh = true
 	}
 	b, err := syscall.Mmap(int(fd.Fd()), 0, int(size),
 		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
@@ -62,25 +66,27 @@ func Map(path string) *mapper {
 		path: path,
 		file: fd,
 		size: size,
+		pags: 0,
 		data: b,
 		gaps: make([]int, 0),
 	}
-	m.debug()
-	//m.initialize()
-	//m.growAndRemap()
-	//fmt.Printf("docs: %d, gaps: %d (%v)\n", m.docs, len(m.gaps), m.gaps)
+	m.initialize(fresh)
 	return m
 }
 
 // initialize the mapper; fill out the document count
 // as well as the gap list when the mapper is started
-func (m *mapper) initialize() {
-	if m.size > 0 {
+func (m *mapper) initialize(fresh bool) {
+	// if the file was just created we don't
+	// need to load anything into the mapper
+	if !fresh { // otherwise...
+		// file is not fresh; it contains data
+		// that we need to add to the mapper...
 		lst, pos := int(m.size-SYS_PAGE), 0
+		for m.data[lst] == NIL_PAGE[0] {
+			lst--
+		}
 		for pos <= lst {
-			if m.data[lst] == NIL_PAGE[0] {
-				lst -= int(SYS_PAGE)
-			}
 			if m.data[pos] != NIL_PAGE[0] {
 				pgs := m.data[pos+1]
 				m.pags += int64(pgs)
@@ -93,7 +99,7 @@ func (m *mapper) initialize() {
 	}
 }
 
-// writes a key value pair at the block offset provided. It
+// writes a binary document at the block offset provided. It
 // will increment the doc count, as well as grow the file and
 // remap if nessicary. If the provided position happens to be
 // in the current gap list it will also remove that entry.
@@ -109,10 +115,10 @@ func (m *mapper) Set(dat []byte, offset int) bool {
 	pgs := int(doc[1])
 	// calculate proper position to set based on
 	// doc's page count and provided offset
-	pos, pgdif := m.positionToSet(pgs, offset)
+	pos, pct := m.positionToSet(offset, pgs)
 	// write data to provided position
 	copy(m.data[pos:pos+(pgs*int(SYS_PAGE))], doc)
-	m.pags += int64(pgdif)
+	m.pags += int64(pct) // page count to incr or decr
 	return true
 }
 
@@ -120,10 +126,15 @@ func (m *mapper) Set(dat []byte, offset int) bool {
 // provided and the number of pages the data
 // requires in order to perform a set / update.
 func (m *mapper) positionToSet(offset, pages int) (int, int) {
-	// wipe all pages of the document located at
-	// the offset provided so we are left with a
-	// clean slate. return the newly wiped pages.
-	pgs := m.del(offset)
+	// get the position of the offset in bytes
+	// and check header to see if need to wipe
+	pos, pgs := offset*int(SYS_PAGE), 0
+	if m.data[pos] == 0x01 && m.data[pos+1] != 0x00 {
+		// wipe all pages of the document located at
+		// the offset provided so we are left with a
+		// clean slate. return the newly wiped pages.
+		pgs = m.del(offset)
+	}
 	// if the number of pages provided is smaller
 	// than then freshly wiped pages...
 	if pages < pgs {
@@ -214,7 +225,7 @@ func (m *mapper) del(offset int) int {
 	// get position based on offset
 	pos := int64(offset) * SYS_PAGE
 	// get how many pages document is using
-	pgs := int(m.data[pos] + 1)
+	pgs := int(m.data[pos+1])
 	// get byte count we need to write based on pgs
 	siz := int64(pgs) * SYS_PAGE
 	// write zero page data across document size of siz
@@ -239,13 +250,20 @@ func (m *mapper) addOffset(offset, pages int) {
 // reuse. if a match is found, it is removed from
 // the gap list and returned (with bool) for use
 func (m *mapper) getOffset(pages int) (int, bool) {
-	// check to see if there are consecutive gaps
-	// that we can use, if not, get last offset...
-	if len(m.gaps) >= pages {
-		for i := 0; i < len(m.gaps); i++ {
-			if m.gaps[i+pages-1]-m.gaps[i]+1 == pages {
-				m.gaps = append(m.gaps[:i], m.gaps[i+pages:]...)
-				return i, true
+	if len(m.gaps) > 1 {
+		if pages == 1 {
+			i := m.gaps[0]
+			m.gaps = m.gaps[1:]
+			return i, true
+		}
+		// check to see if there are consecutive gaps
+		// that we can use, if not, get last offset...
+		if len(m.gaps) >= pages {
+			for i := 0; i < len(m.gaps); i++ {
+				if (m.gaps[i+pages-1]-m.gaps[i])+1 == pages {
+					m.gaps = append(m.gaps[:i], m.gaps[i+pages:]...)
+					return i, true
+				}
 			}
 		}
 	}
@@ -279,7 +297,8 @@ func (m *mapper) Unmap() {
 
 // grow the underlying file and re-map if nessicary
 func (m *mapper) grow() {
-	if m.pags < m.size/SYS_PAGE {
+	// NOTE: CAN POSSIBLY REMOVE THIS CHECK...
+	if m.pags+int64(len(m.gaps)) < (m.size/SYS_PAGE)-1 {
 		return
 	}
 	m.Unmap()
@@ -299,8 +318,11 @@ func document(data []byte) ([]byte, bool) {
 	if size < 1 || size+2 > 0xff*int(SYS_PAGE) {
 		return nil, false
 	}
-	pages := (size + 2 + int(SYS_PAGE) - 1) &^ (int(SYS_PAGE) - 1) / int(SYS_PAGE)
-	return append([]byte{0x01, byte(pages)}, data...), true
+	pgs := (size + 2 + int(SYS_PAGE) - 1) &^ (int(SYS_PAGE) - 1) / int(SYS_PAGE)
+	doc := make([]byte, pgs*int(SYS_PAGE), pgs*int(SYS_PAGE))
+	doc[0], doc[1] = 0x01, byte(pgs)
+	copy(doc[2:], data)
+	return doc, true
 }
 
 // verify that the data provided is contains
