@@ -20,6 +20,23 @@ type node struct {
 	Value               valuetype
 }
 
+func (n *node) String() string {
+	var t, c string
+	if n.color == 0 {
+		t = "(B) "
+	} else {
+		t = "(R) "
+	}
+	c += t + "[" + fmt.Sprintf("%v", n.Key) + "]"
+	//if n.left != nil {
+	//	c += " [LC] " + n.left.String()
+	//}
+	//if n.right != nil {
+	//	c += " [RC] " + n.right.String()
+	//}
+	return c
+}
+
 type Tree struct {
 	root *node
 	size int
@@ -327,29 +344,68 @@ func (t *Tree) transplant(u, v *node) {
 	v.parent = u.parent
 }
 
+func (t *Tree) BFS() []*node {
+	visited := []*node{}
+	queue := []*node{t.root}
+	for len(queue) != 0 {
+		nd := queue[0]
+		queue = queue[1:len(queue):len(queue)]
+		visited = append(visited, nd)
+		if nd.left != nil {
+			queue = append(queue, nd.left)
+		}
+		if nd.right != nil {
+			queue = append(queue, nd.right)
+		}
+	}
+	return visited
+}
+
 //Next return the node's successor as an iterator
 func (n *node) Next() *node {
 	return successor(n)
 }
 
-func (n *node) preorder() {
-	fmt.Printf("(%v %v)", n.Key, n.Value)
+func (n *node) display() {
+	fmt.Printf("node (%s %s)", n.Key, n.Value)
 	if n.parent == nil {
 		fmt.Printf("nil")
 	} else {
-		fmt.Printf("whose parent is %v", n.parent.Key)
+		fmt.Printf(", parent -> [%s]", n.parent.Key)
 	}
 	if n.color == RED {
-		fmt.Println(" and color RED")
+		fmt.Println(" (R)")
 	} else {
-		fmt.Println(" and color BLACK")
+		fmt.Println(" (B)")
 	}
 	if n.left != nil {
-		fmt.Printf("%v's left child is ", n.Key)
+		fmt.Printf("[%s]'s left child -> ", n.Key)
 		n.left.preorder()
 	}
 	if n.right != nil {
-		fmt.Printf("%v's right child is ", n.Key)
+		fmt.Printf("[%s]'s right child -> ", n.Key)
+		n.right.preorder()
+	}
+}
+
+func (n *node) preorder() {
+	fmt.Printf("node (%s %s)", n.Key, n.Value)
+	if n.parent == nil {
+		fmt.Printf("nil")
+	} else {
+		fmt.Printf(", parent -> [%s]", n.parent.Key)
+	}
+	if n.color == RED {
+		fmt.Println(" (R)")
+	} else {
+		fmt.Println(" (B)")
+	}
+	if n.left != nil {
+		fmt.Printf("[%s]'s left child -> ", n.Key)
+		n.left.preorder()
+	}
+	if n.right != nil {
+		fmt.Printf("[%s]'s right child -> ", n.Key)
 		n.right.preorder()
 	}
 }

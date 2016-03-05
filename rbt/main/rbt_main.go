@@ -1,7 +1,7 @@
 package main
 
 import (
-	"testing"
+	"fmt"
 
 	"github.com/cagnosolutions/ads/rbt"
 )
@@ -13,6 +13,7 @@ func (n key) LessThan(b interface{}) bool {
 	return n < value
 }
 
+/*
 func Test_Preorder(t *testing.T) {
 	tree := rbt.NewTree()
 	tree.Insert(key(1), "123")
@@ -53,25 +54,31 @@ func Test_Find(t *testing.T) {
 		return
 	}
 }
-func Test_Iterator(t *testing.T) {
-	tree := rbt.NewTree()
+*/
 
+func main() {
+	fmt.Println("inserted: 1, 3, 4, 6, 5, 2")
+	tree := rbt.NewTree()
 	tree.Insert(key(1), "123")
 	tree.Insert(key(3), "234")
 	tree.Insert(key(4), "dfa3")
 	tree.Insert(key(6), "sd4")
 	tree.Insert(key(5), "jcd4")
-
 	tree.Insert(key(2), "bcd4")
-
-	it := tree.Iterator()
-
-	for it != nil {
-		it = it.Next()
+	it1 := tree.Iterator()
+	for it1 != nil {
+		fmt.Println(it1)
+		it1 = it1.Next()
 	}
-
+	tree.Preorder()
+	it2 := tree.Iterator()
+	for it2 != nil {
+		fmt.Println(it2)
+		it2 = it2.Next()
+	}
 }
 
+/*
 func Test_Delete(t *testing.T) {
 	tree := rbt.NewTree()
 	tree.Insert(key(1), "123")
@@ -94,3 +101,4 @@ func Test_Delete(t *testing.T) {
 		return
 	}
 }
+*/
