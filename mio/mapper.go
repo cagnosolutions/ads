@@ -37,6 +37,14 @@ type mapper struct {
 	gaps []int
 }
 
+func (m *mapper) Pages() int {
+	return int(m.pags)
+}
+
+func (m *mapper) Gaps() int {
+	return len(m.gaps)
+}
+
 // open a backing file at the provided path, and
 // grow the file to minimum mmap size if it is a
 // new file. attempt to memory map backing file
@@ -199,23 +207,28 @@ func (m *mapper) positionToAdd(pages int) int {
 }
 
 // return a document based on its offset key
-func (m *mapper) Get(offset int) []byte {
+func (m *mapper) Get(offset int) ([]byte, bool) {
 	// get position based on offset
 	pos := int64(offset) * SYS_PAGE
+	// check for valid header before returning
+	if m.data[pos] == 0x00 || m.data[pos+1] == 0x00 {
+		return nil, false
+	}
 	// get how many pages document is using
-	pgs := int(m.data[pos] + 1)
+	pgs := int(m.data[pos+1])
 	// get byte count we need to read based on pgs
 	siz := int64(pgs) * SYS_PAGE
 	// return document slice
-	return m.data[pos : pos+siz]
+	return m.data[pos : pos+siz], true
 }
 
 // delete a document and add re-claimed pages to the
 // to m.gaps list. decrement m.pags (ie. pages in use)
-func (m *mapper) Del(offset int) {
+func (m *mapper) Del(offset int) bool {
 	pages := m.del(offset)
 	m.addOffset(offset, pages)
 	m.pags -= int64(pages)
+	return pages > 0
 }
 
 // delete, ie. write nil bytes, starting at offset
@@ -250,7 +263,7 @@ func (m *mapper) addOffset(offset, pages int) {
 // reuse. if a match is found, it is removed from
 // the gap list and returned (with bool) for use
 func (m *mapper) getOffset(pages int) (int, bool) {
-	if len(m.gaps) > 1 {
+	if len(m.gaps) > 0 {
 		if pages == 1 {
 			i := m.gaps[0]
 			m.gaps = m.gaps[1:]
