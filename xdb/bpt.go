@@ -3,7 +3,6 @@ package xdb
 import (
 	"bytes"
 	"log"
-	"sync"
 )
 
 const ORDER = 32
@@ -14,7 +13,6 @@ const ORDER = 32
 
 type tree struct {
 	root *node
-	sync.RWMutex
 }
 
 func NewTree() *tree {
@@ -39,8 +37,6 @@ type record struct {
 
 // find record for a given key
 func (t *tree) get(key []byte) *record {
-	t.RLock()
-	defer t.RUnlock()
 	n := find_leaf(t.root, key)
 	if n == nil {
 		return nil
@@ -58,8 +54,6 @@ func (t *tree) get(key []byte) *record {
 }
 
 func (t *tree) all() []*record {
-	t.RLock()
-	defer t.RUnlock()
 	c := find_first_leaf(t.root)
 	var r []*record
 	for {
@@ -75,9 +69,8 @@ func (t *tree) all() []*record {
 	return r
 }
 
+// check to see if a key exists
 func (t *tree) has(key []byte) bool {
-	t.RLock()
-	defer t.RUnlock()
 	n := find_leaf(t.root, key)
 	if n == nil {
 		return false
@@ -123,9 +116,10 @@ func search(n *node, key []byte) int {
 
 // master insert function
 func (t *tree) set(key []byte, val []byte) {
-	// ignore duplicates: if a value can be found for
-	// given key, simply return without inserting
-	if t.get(key) != nil {
+	// if a value can be found for given
+	// key, simply update value and return
+	if r := t.get(key); r != nil {
+		r.val = val
 		return
 	}
 	// create record ptr for given value
@@ -140,7 +134,7 @@ func (t *tree) set(key []byte, val []byte) {
 	leaf := find_leaf(t.root, key)
 	// if the leaf has room, then insert key and record
 	if leaf.num_keys < ORDER-1 {
-		/*leaf =*/ insert_into_leaf(leaf, key, ptr)
+		insert_into_leaf(leaf, key, ptr)
 		return
 	}
 	// otherwise, insert, split, and balance... returning updated root
@@ -203,15 +197,11 @@ func get_left_index(parent, left *node) int {
 
 // master delete
 func (t *tree) del(key []byte) {
-	t.RLock()
 	record := t.get(key)
 	leaf := find_leaf(t.root, key)
-	t.RUnlock()
 	if record != nil && leaf != nil {
-		t.Lock()
 		t.root = delete_entry(t.root, leaf, key, record)
 		record = nil // free key_record
-		t.Unlock()
 	}
 }
 
@@ -247,10 +237,6 @@ func remove_entry_from_node(n *node, key []byte, ptr interface{}) *node {
 	for n.ptrs[i] != ptr {
 		i++
 	}
-
-	//for n.ptrs[i].(*node) != ptr {
-	//	i++
-	//}
 	for i += 1; i < num_ptrs; i++ {
 		n.ptrs[i-1] = n.ptrs[i]
 	}
@@ -278,12 +264,6 @@ func delete_entry(root, n *node, key []byte, ptr interface{}) *node {
 
 	// remove key, ptr from node
 	n = remove_entry_from_node(n, key, ptr)
-	//switch ptr.(type) {
-	//case *node:
-	//	n = remove_entry_from_node(n, key, ptr.(*node))
-	//case *record:
-	//	n = remove_entry_from_node(n, key, ptr.(*record))
-	//}
 	if n == root {
 		return adjust_root(root)
 	}
@@ -548,8 +528,7 @@ func insert_into_node_after_splitting(root, old_node *node, left_index int, key 
  */
 
 // inserts a new key and *record into a leaf, then returns leaf
-// NOTE: best
-func insert_into_leaf(leaf *node, key []byte, ptr *record) /**node*/ {
+func insert_into_leaf(leaf *node, key []byte, ptr *record) {
 	var i, insertion_point int
 	for insertion_point < leaf.num_keys && bytes.Compare(leaf.keys[insertion_point], key) == -1 {
 		insertion_point++
