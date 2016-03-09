@@ -28,7 +28,7 @@ type node struct {
 }
 
 type record struct {
-	val []byte
+	val int
 }
 
 /*
@@ -53,12 +53,19 @@ func (t *tree) get(key []byte) *record {
 	return n.ptrs[i].(*record)
 }
 
-func (t *tree) all() []*record {
+func (t *tree) val(key []byte) (int, bool) {
+	if r := t.get(key); r != nil {
+		return r.val, true
+	}
+	return -1, false
+}
+
+func (t *tree) all() []int {
 	c := find_first_leaf(t.root)
-	var r []*record
+	var r []int
 	for {
 		for i := 0; i < c.num_keys; i++ {
-			r = append(r, c.ptrs[i].(*record))
+			r = append(r, c.ptrs[i].(*record).val)
 		}
 		if c.ptrs[ORDER-1] != nil {
 			c = c.ptrs[ORDER-1].(*node)
@@ -115,7 +122,7 @@ func search(n *node, key []byte) int {
  */
 
 // master insert function
-func (t *tree) set(key []byte, val []byte) {
+func (t *tree) set(key []byte, val int) {
 	// if a value can be found for given
 	// key, simply update value and return
 	if r := t.get(key); r != nil {

@@ -2,6 +2,10 @@ package xdb
 
 import "sync"
 
+const (
+	DELIM = 0x1f
+)
+
 type store struct {
 	sid string
 	idx *tree
@@ -19,14 +23,12 @@ func (st *store) has(k []byte) bool {
 func (st *store) add(k, v []byte) bool {
 	// if key is not in index
 	if !st.idx.has(k) {
-		// encdoc using k/v pair; if ok continue
-		if r, ok := encdoc(k, v); ok {
-			// add to disk, if ok continue
-			if i, ok := st.dat.add(r); ok {
-				// add key and record offset in index
-				st.idx.set(k, uitob(i))
-				return true
-			}
+		// add to disk, if ok continue
+		// encdoc using k/v pair
+		if i, ok := st.dat.add(encdoc(k, v)); ok {
+			// add key and record offset in index
+			st.idx.set(k, i)
+			return true
 		}
 	}
 	// else, something went wrong
@@ -35,37 +37,29 @@ func (st *store) add(k, v []byte) bool {
 
 // volatiles overwrite/update data
 func (st *store) set(k, v []byte) bool {
-	// if k/r exists in index...
-	var i uint
-	if r := st.idx.get(k); r != nil {
-		// read ptr offset from index
-		i = btoui(r.val)
-		// del indexed val for clean update
-		st.idx.del(k)
+	/*m.RLock()
+	i, ok := m.idx.val(k)
+	m.RUnlock()
+	if !ok {
+
 	}
-	// encdoc using k/v pair; if ok continue
-	if r, ok := encdoc(k, v); ok {
-		// set on disk, if ok continue
-		if i, ok := st.dat.set(r, int(i)); ok {
-			// add key and record offset in index
-			st.idx.set(k, uitob(i))
-			return true
-		}
+	m.Lock()
+	ni, ok := m.dat.set(encdoc(k, v), i)
+	if ok && ni != i {
+		m.idx.set(k, ni)
 	}
-	// else, something went wrong
+	m.Unlock()
+	return ok*/
 	return false
 }
 
 // return single value matching key
 func (st *store) get(k []byte) []byte {
+
 	// if k/r exists in index...
-	if r := st.idx.get(k); r != nil {
-		// read ptr offset from index
-		i := btoui(r.val)
+	if i, ok := st.idx.val(k); ok {
 		// read data off disk; if ok continue
-		if b, ok := st.dat.get(int(i)); ok {
-			// discard disk header
-			b = b[2:]
+		if b := st.dat.get(int(i)); b != nil {
 			// decode data; if ok return v
 			if _, v, ok := decdoc(b); ok {
 				return v
@@ -79,11 +73,9 @@ func (st *store) get(k []byte) []byte {
 // delete a record matching key
 func (st *store) del(k []byte) bool {
 	// if k/r exists in index...
-	if r := st.idx.get(k); r != nil {
-		// read ptr offset from index
-		i := btoui(r.val)
+	if i, ok := st.idx.val(k); ok {
 		// remove from disk; if ok continue
-		if ok := st.dat.remove(int(i)); ok {
+		if ok := st.dat.del(i); ok {
 			// remove from index and return
 			st.idx.del(k)
 			return true
@@ -101,11 +93,9 @@ func (st *store) all() [][]byte {
 		var data [][]byte
 		for j := 0; j < len(recs); j++ {
 			// read ptr offset from record index
-			i := btoui(recs[j].val)
+			i := recs[j]
 			// read data off disk; if ok continue
-			if b, ok := st.dat.get(int(i)); ok {
-				// discard disk header
-				b = b[2:]
+			if b := st.dat.get(int(i)); b != nil {
 				// decode data; if ok append v
 				if _, v, ok := decdoc(b); ok {
 					data = append(data, v)
@@ -139,8 +129,11 @@ func btoui(b []byte) uint {
 }
 
 // encode key/val to doc and header
-func encdoc(k, v []byte) ([]byte, bool) {
-	ks, vs := len(k), len(v)
+func encdoc(k, v []byte) []byte {
+
+	return append(k, append([]byte{DELIM}, v...)...)
+
+	/*ks, vs := len(k), len(v)
 	if ks > K_MAX || vs > V_MAX {
 		return nil, false
 	}
@@ -153,7 +146,7 @@ func encdoc(k, v []byte) ([]byte, bool) {
 	d[4] = byte(vs >> 24)
 	copy(d[5:5+ks], k)
 	copy(d[5+ks:ds], v)
-	return d, true
+	return d, true*/
 }
 
 // decode doc and header back to key/val
