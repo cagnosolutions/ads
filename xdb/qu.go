@@ -1,16 +1,18 @@
-// single queue entry
+package xdb
+
 import "sync"
 
-type node struct {
+// single queue entry
+type qnode struct {
 	data interface{}
-	next *node
+	next *qnode
 }
 
 // struct representing a fifo queue
 // all methods of the queue are safe
 // for multiple go-routines / threads
 type queue struct {
-	head, tail *node
+	head, tail *qnode
 	size       int
 	sync.RWMutex
 }
@@ -31,7 +33,7 @@ func (q *queue) Size() int {
 // pushes an entry at the tail of the queue
 func (q *queue) Push(v interface{}) {
 	q.Lock()
-	n := &node{data: v}
+	n := &qnode{data: v}
 	if q.tail == nil {
 		q.tail, q.head = n, n
 	} else {
