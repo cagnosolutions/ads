@@ -28,7 +28,7 @@ type MappedFile struct {
 // open a mapped file, or create if needed and align the
 // size to the minimum memory mapped file size (ie. 16 MB)
 func OpenMappedFile(path string) (*MappedFile, bool) {
-	file, path, size := OpenFile(path)
+	file, path, size := OpenFile(path + ".dat")
 	var iznu bool
 	if size == 0 {
 		size = resize(file.Fd(), MIN_MMAP)

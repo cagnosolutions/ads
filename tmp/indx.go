@@ -49,7 +49,7 @@ func (mx *MappedIndx) AddPage() {
 }
 
 func (mx *MappedIndx) GetPage() int {
-	p, n := binary.Varint(mx.indx[0:9])
+	p, n := binary.Varint(mx.indx[0:8])
 	if n < 1 {
 		Log(errors.New("error:extracting int64 from mapped index"))
 	}
@@ -61,42 +61,39 @@ func (mx *MappedIndx) DelPage() {
 }
 
 func (mx *MappedIndx) AddPages(c int) {
-	p, n := binary.Varint(mx.indx[0:9])
+	p, n := binary.Varint(mx.indx[0:8])
 	if n < 1 {
 		Log(errors.New("error:extracting int64 from mapped index"))
 	}
 	p += int64(c)
-	binary.PutVarint(mx.indx[0:9], p)
+	binary.PutVarint(mx.indx[0:8], p)
 }
 
 func (mx *MappedIndx) DelPages(c int) {
-	p, n := binary.Varint(mx.indx[0:9])
+	p, n := binary.Varint(mx.indx[0:8])
 	if n < 1 {
 		Log(errors.New("error:extracting int64 from mapped index"))
 	}
 	p -= int64(c)
-	binary.PutVarint(mx.indx[0:9], p)
+	binary.PutVarint(mx.indx[0:8], p)
 }
 
 func (mx *MappedIndx) AddHole(n int) {
 	// account for page count offset (8)
-	mx.indx[n+7] = 0x00
+	mx.indx[n+8] = 0x00
 }
 
 func (mx *MappedIndx) DelHole(n int) {
 	// account for page count offset (8)
-	mx.indx[n+7] = 0x01
+	mx.indx[n+8] = 0x01
 }
 
 func (mx *MappedIndx) GetHole() int {
-	mx.indx.Mlock()
 	var i int
-	for i = 5; i < len(mx.indx); i++ {
+	for i = 8; i < len(mx.indx); i++ {
 		if mx.indx[i] == 0x00 {
-			mx.indx.Munlock()
 			return i
 		}
 	}
-	mx.indx.Munlock()
 	return -1
 }
