@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const IDX_SIZE = 1 << 12 // 4 KB
+const IDX_SIZE = 1 << 16 // 64KB
 
 type MappedIndx struct {
 	path string
