@@ -6,7 +6,11 @@ import (
 	"os"
 )
 
-const IDX_SIZE = 1 << 12 // 4 KB
+const (
+	IDX_SIZE = 1 << 12   // 4 KB
+	MAX_PAGS = 1<<19 - 1 // 524,287 PAGES
+	NIL_HOLE = make([]byte, 4, 4)
+)
 
 type MappedIndx struct {
 	path string
@@ -32,8 +36,20 @@ func (mx *MappedIndx) Init() {
 	copy(mx.indx, make([]byte, IDX_SIZE, IDX_SIZE))
 }
 
+func (mx *MappedIndx) CanInsert() bool {
+	return mx.GetPage() < MAX_PAGS
+}
+
 func (mx *MappedIndx) Add() (int, bool) {
-	return -1, false
+	if !mx.CanInsert() {
+		return -1, false
+	}
+	p, ok := mx.GetHole()
+	if !ok {
+		p = mx.GetPage() * SYS_PAGE
+	}
+	mx.AddPage()
+	return p, true
 }
 
 func (mx *MappedIndx) Set(n int) (int, bool) {
@@ -41,7 +57,8 @@ func (mx *MappedIndx) Set(n int) (int, bool) {
 }
 
 func (mx *MappedIndx) Del(n int) {
-	return
+	mx.DelPage()
+	mx.AddHole(n)
 }
 
 func (mx *MappedIndx) AddPage() {
@@ -79,21 +96,32 @@ func (mx *MappedIndx) DelPages(c int) {
 }
 
 func (mx *MappedIndx) AddHole(n int) {
+	if mx.GetPage() < MAX_PAGES {
+
+	}
 	// account for page count offset (8)
 	mx.indx[n+8] = 0x00
 }
 
+/*
 func (mx *MappedIndx) DelHole(n int) {
 	// account for page count offset (8)
+	i := n * SYS_PAGE
+	copy(m.indx[i+8:i+8+4], )
 	mx.indx[n+8] = 0x01
 }
+*/
 
-func (mx *MappedIndx) GetHole() int {
+// finds and returns hole/gap; if one is found and
+// returned successfully GetHole() also removes it.
+func (mx *MappedIndx) GetHole() (int, bool) {
 	var i int
-	for i = 8; i < len(mx.indx); i++ {
-		if mx.indx[i] == 0x00 {
-			return i
+	for i = 8; i < len(mx.indx)-4; i += 4 {
+		if mx.indx[i] != 0x00 {
+			p := Int32(mx.indx[i : i+4])
+			copy(m.indx[i:i+4], NIL_HOLE)
+			return p, true
 		}
 	}
-	return -1
+	return -1, false
 }

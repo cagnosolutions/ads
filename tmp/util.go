@@ -38,3 +38,14 @@ func resize(fd uintptr, size int) int {
 	}
 	return size
 }
+
+func PutInt32(b []byte, v int32) {
+	b[0] = byte(v)
+	b[1] = byte(v >> 8)
+	b[2] = byte(v >> 16)
+	b[3] = byte(v >> 24)
+}
+
+func Int32(b []byte) int32 {
+	return int32(b[0]) | int32(b[1])<<8 | int32(b[2])<<16 | int32(b[3])<<24
+}
