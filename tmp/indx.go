@@ -6,16 +6,7 @@ import (
 	"os"
 )
 
-<<<<<<< HEAD
-const (
-	IDX_SIZE = 1 << 12   // 4 KB
-	MAX_PAGS = 1<<19 - 1 // 524,287 PAGES
-	NIL_HOLE = make([]byte, 4, 4)
-)
-=======
-// NOTE: this should probably be 1 << 19
-const IDX_SIZE = 1 << 16 // 64KB
->>>>>>> 5c5d0ad7afcdc9169c4d17acc15bada652278f44
+const IDX_SIZE = 1 << 19
 
 type MappedIndx struct {
 	path string
@@ -26,7 +17,7 @@ type MappedIndx struct {
 func OpenMappedIndx(path string) *MappedIndx {
 	file, path, size := OpenFile(path)
 	if size == 0 {
-		size = resize(file.Fd(), IDX_SIZE)
+		size = resize(file.Fd(), IDX_SIZE/WS)
 	}
 	indx := Mmap(file, 0, size)
 	mapx := &MappedIndx{
@@ -37,23 +28,16 @@ func OpenMappedIndx(path string) *MappedIndx {
 	return mapx
 }
 
-func (mx *MappedIndx) Init() {
-	copy(mx.indx, make([]byte, IDX_SIZE, IDX_SIZE))
-}
-
 func (mx *MappedIndx) CanInsert() bool {
-	return mx.GetPage() < MAX_PAGS
+	return mx.GetPage() < IDX_SIZE-1
 }
 
 func (mx *MappedIndx) Add() (int, bool) {
-	if !mx.CanInsert() {
+	p := mx.indx.Next()
+	if p == -1 {
 		return -1, false
 	}
-	p, ok := mx.GetHole()
-	if !ok {
-		p = mx.GetPage() * SYS_PAGE
-	}
-	mx.AddPage()
+	mx.indx.Add(p)
 	return p, true
 }
 
@@ -101,7 +85,7 @@ func (mx *MappedIndx) DelPages(c int) {
 }
 
 func (mx *MappedIndx) AddHole(n int) {
-	if mx.GetPage() < MAX_PAGES {
+	if mx.GetPage() < IDX_SIZE-1 {
 
 	}
 	// account for page count offset (8)

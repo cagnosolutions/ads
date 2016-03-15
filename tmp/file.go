@@ -22,7 +22,7 @@ type MappedFile struct {
 	size int
 	page int
 	data Data
-	indx *MappedIndx 
+	indx *MappedIndx
 }
 
 // open a mapped file, or create if needed and align the
@@ -60,6 +60,10 @@ func (mf *MappedFile) Add(b []byte) int {
 		return -1
 	}
 	n, ok := mf.indx.Add()
+	if atMax(n) {
+		Log(errors.New("error:file is at maximum size"))
+		return -1
+	}
 	if !ok {
 		mf.Grow()
 	}
