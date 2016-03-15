@@ -6,11 +6,16 @@ import (
 	"os"
 )
 
+<<<<<<< HEAD
 const (
 	IDX_SIZE = 1 << 12   // 4 KB
 	MAX_PAGS = 1<<19 - 1 // 524,287 PAGES
 	NIL_HOLE = make([]byte, 4, 4)
 )
+=======
+// NOTE: this should probably be 1 << 19
+const IDX_SIZE = 1 << 16 // 64KB
+>>>>>>> 5c5d0ad7afcdc9169c4d17acc15bada652278f44
 
 type MappedIndx struct {
 	path string
