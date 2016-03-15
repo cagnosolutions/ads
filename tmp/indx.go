@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// NOTE: this should probably be 1 << 19
 const IDX_SIZE = 1 << 16 // 64KB
 
 type MappedIndx struct {

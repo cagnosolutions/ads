@@ -22,7 +22,7 @@ type MappedFile struct {
 	size int
 	page int
 	data Data
-	indx *MappedIndx
+	indx *MappedIndx 
 }
 
 // open a mapped file, or create if needed and align the
