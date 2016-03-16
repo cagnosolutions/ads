@@ -2,12 +2,26 @@ package tmp
 
 import (
 	"os"
+	"strings"
 	"syscall"
 )
 
 func sanitize(path string) string {
 	if path[len(path)-1] == '/' {
 		return path[:len(path)-1]
+	}
+	if x := strings.Index(path, "."); x != -1 {
+		return path[:x]
+	}
+	return path
+}
+
+func mkdirs(path string) string {
+	path = sanitize(path)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			Log(err)
+		}
 	}
 	return path
 }

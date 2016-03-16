@@ -1,33 +1,50 @@
 package tmp
 
+import "sync"
+
 type Store struct {
-	*MappedFile
+	path string
+	indx *tree
+	data *MappedFile
+	sync.RWMutex
 }
 
-func newStore(path string) (*Store, error) {
-
-	return nil, nil
+func NewStore(path string) *Store {
+	st := &Store{
+		path: path,
+		indx: NewTree(),
+	}
+	file, _ := OpenMappedFile(path)
+	st.data = file
+	return st
 }
 
-func (st *Store) add(d []byte) (int, error) {
-
-	return 0, nil
+func (st *Store) Has() bool {
+	st.RLock()
+	defer st.RUnlock()
 }
 
-func (st *Store) set(n int, d []byte) error {
-
-	return nil
+func (st *Store) Add() {
+	st.Lock()
+	defer st.Unlock()
 }
 
-func (st *Store) get(n int) []byte {
-
-	return nil
+func (st *Store) Set() {
+	st.Lock()
+	defer st.Unlock()
 }
 
-func (st *Store) del(n int) {
-
+func (st *Store) Get() {
+	st.RLock()
+	defer st.RUnlock()
 }
 
-func (st *Store) all(fn func(n int, d []byte) bool) {
+func (st *Store) Del() {
+	st.Lock()
+	defer st.Unlock()
+}
 
+func (st *Store) All() {
+	st.RLock()
+	defer st.RUnlock()
 }

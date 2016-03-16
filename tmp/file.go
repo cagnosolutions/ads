@@ -103,8 +103,8 @@ func (mf *MappedFile) Del(n int) {
 }
 
 // returns all non-empty blocks
-func (mf *MappedFile) All() [][]byte {
-	return nil
+func (mf *MappedFile) All() []int {
+	return mf.idndx.All()
 }
 
 // closes the mapped file
