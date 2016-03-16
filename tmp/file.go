@@ -79,7 +79,6 @@ func (mf *MappedFile) Set(n int, b []byte) int {
 	if !valid(len(b)) {
 		return -1
 	}
-	// NOTE: pick up here
 	n, ok := mf.indx.Set(n)
 	if !ok {
 		mf.Grow()
