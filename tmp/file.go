@@ -1,7 +1,6 @@
 package tmp
 
 import (
-	"errors"
 	"os"
 	"syscall"
 )
@@ -12,79 +11,44 @@ var (
 )
 
 const (
-	MIN_MMAP = 1 << 24 // 16 MB
-	MAX_MMAP = 1 << 31 //  2 GB
+	MIN_MMAP = 1 << 24  // 16 MB
+	MAX_MMAP = 1 << 31  //  2 GB
+	MAX_DOCS = IDX_SIZE // 524288
 )
 
 type MappedFile struct {
 	path string
 	file *os.File
 	size int
-	page int
+	used int
 	data Data
-	indx *MappedIndx
 }
 
 // open a mapped file, or create if needed and align the
 // size to the minimum memory mapped file size (ie. 16 MB)
-func OpenMappedFile(path string) (*MappedFile, bool) {
+func OpenMappedFile(path string, used int) *MappedFile {
 	file, path, size := OpenFile(path + ".dat")
-	var iznu bool
 	if size == 0 {
 		size = resize(file.Fd(), MIN_MMAP)
-		iznu = true
 	}
 	data := Mmap(file, 0, size)
-	mapf := &MappedFile{
+	return &MappedFile{
 		path: path + ".dat",
 		file: file,
 		size: size,
+		used: used,
 		data: data,
-		indx: OpenMappedIndx(path + ".idx"),
 	}
-	return mapf, iznu
-}
-
-// validate
-func valid(n int) bool {
-	if !(n < SYS_PAGE) {
-		Log(errors.New("error: document is too large"))
-		return false
-	}
-	return true
-}
-
-// inserts a new block
-func (mf *MappedFile) Add(b []byte) int {
-	if !valid(len(b)) {
-		return -1
-	}
-	n, ok := mf.indx.Add()
-	if atMax(n) {
-		Log(errors.New("error:file is at maximum size"))
-		return -1
-	}
-	if !ok {
-		mf.Grow()
-	}
-	copy(mf.data[n:], b)
-	return n
 }
 
 // updates existing or inserts new block at offset n
-func (mf *MappedFile) Set(n int, b []byte) int {
+func (mf *MappedFile) Set(n int, b []byte) {
+	mf.checkGrow()
 	if mf.data[n] == 0x00 {
-		return mf.Add(b)
+		mf.used++ // we are adding
 	}
-	if !valid(len(b)) {
-		return -1
-	}
-	n, ok := mf.indx.Set(n)
-	if !ok {
-		mf.Grow()
-	}
-	copy(mf.data[n:], b)
-	return n
+	// otherwise we are just updating
+	copy(mf.data[n:n+SYS_PAGE], b)
 }
 
 // returns block at offset n
@@ -97,13 +61,8 @@ func (mf *MappedFile) Get(n int) []byte {
 
 // removes block at offset n
 func (mf *MappedFile) Del(n int) {
-	mf.indx.Del(n)
+	mf.used--
 	copy(mf.data[n:], NIL_PAGE)
-}
-
-// returns all non-empty blocks
-func (mf *MappedFile) All() []int {
-	return mf.idndx.All()
 }
 
 // closes the mapped file
@@ -113,6 +72,13 @@ func (mf *MappedFile) CloseMappedFile() {
 	Log(mf.file.Close())
 }
 
-func (mf *MappedFile) Grow() {
-	return
+// check to see if we should grow
+func (mf *MappedFile) checkGrow() {
+	if mf.used+1 < MAX_DOCS {
+		return // no need to grow
+	}
+	// unmap, grow underlying file and remap
+	mf.data.Munmap()
+	mf.size = resize(mf.file.Fd(), mf.size+MIN_MMAP)
+	mf.data = Mmap(mf.file, 0, mf.size)
 }

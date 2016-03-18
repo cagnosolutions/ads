@@ -21,7 +21,7 @@ func NewTree() *tree {
 
 func (t *tree) Get(k []byte) int {
 	if n, ok := t.val(k); ok {
-		n
+		return n
 	}
 	return -1
 }

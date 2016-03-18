@@ -1,11 +1,12 @@
 package tmp
 
+/*
 const (
 	WS = 8
-	//SZ = 1 // 65536 index to index 2GB worth of pages
+	SZ = 1 // 65536 index to index 2GB worth of pages
 )
 
-/*
+
 func clean(idx int) {
     if idx < WS {
 		idx = WS
@@ -21,7 +22,7 @@ func NewBitIdx(idx int) BitIdx {
 	clean(idx)
 	log.Printf("Bit vector of %d provides %d indexes (%dKB)\n", SZ, WS*SZ, SZ/1024)
 	return make([]byte, SZ, SZ)
-}*/
+}
 
 func (idx Data) Has(k int) bool {
 	return (idx[k/WS] & (1 << (uint(k % WS)))) != 0
@@ -43,7 +44,6 @@ func (idx Data) Bits(n byte) int {
 func (idx Data) Next() int {
 	for i := 0; i < len(idx); i++ {
 		if idx.Bits(idx[i]) < 8 {
-			// empty slot at this index
 			for j := 0; j < 8; j++ {
 				cur := (i * WS) + j
 				if !idx.Has(cur) {
@@ -58,3 +58,4 @@ func (idx Data) Next() int {
 func atMax(i int) bool {
 	return i == -1
 }
+*/
