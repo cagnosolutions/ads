@@ -1,31 +1,31 @@
 package bpt
 
 // insert a new key, ptr to a node
-func insert_into_node(root, n *node, left_index int, key []byte, right *node) *node {
+func insertIntoNode(root, n *node, leftIndex int, key []byte, right *node) *node {
 	var i int
-	for i = n.num_keys; i > left_index; i-- {
+	for i = n.numKeys; i > leftIndex; i-- {
 		n.ptrs[i+1] = n.ptrs[i]
 		n.keys[i] = n.keys[i-1]
 	}
-	n.ptrs[left_index+1] = right
-	n.keys[left_index] = key
-	n.num_keys++
+	n.ptrs[leftIndex+1] = right
+	n.keys[leftIndex] = key
+	n.numKeys++
 	return root
 }
 
 // insert a new key, ptr to a node causing node to split
-func insert_into_node_after_splitting(root, old_node *node, left_index int, key []byte, right *node) *node {
+func insertIntoNodeAfterSplitting(root, oldNode *node, leftIndex int, key []byte, right *node) *node {
 	var i, j int
 	var child *node
-	var tmp_keys [ORDER][]byte
-	var tmp_ptrs [ORDER + 1]interface{}
-	var k_prime []byte
+	var tmpKeys [ORDER][]byte
+	var tmpPtrs [ORDER + 1]interface{}
+	var prime []byte
 
-	for i < old_node.num_keys+1 {
-		if j == left_index+1 {
+	for i < oldNode.numKeys+1 {
+		if j == leftIndex+1 {
 			j++
 		}
-		tmp_ptrs[j] = old_node.ptrs[i]
+		tmpPtrs[j] = oldNode.ptrs[i]
 		i++
 		j++
 	}
@@ -33,53 +33,53 @@ func insert_into_node_after_splitting(root, old_node *node, left_index int, key 
 	i = 0
 	j = 0
 
-	for i < old_node.num_keys {
-		if j == left_index {
+	for i < oldNode.numKeys {
+		if j == leftIndex {
 			j++
 		}
-		tmp_keys[j] = old_node.keys[i]
+		tmpKeys[j] = oldNode.keys[i]
 		i++
 		j++
 	}
 
-	tmp_ptrs[left_index+1] = right
-	tmp_keys[left_index] = key
+	tmpPtrs[leftIndex+1] = right
+	tmpKeys[leftIndex] = key
 
 	split := cut(ORDER)
-	new_node := &node{}
-	old_node.num_keys = 0
+	newNode := &node{}
+	oldNode.numKeys = 0
 
 	for i = 0; i < split-1; i++ {
-		old_node.ptrs[i] = tmp_ptrs[i]
-		old_node.keys[i] = tmp_keys[i]
-		old_node.num_keys++
+		oldNode.ptrs[i] = tmpPtrs[i]
+		oldNode.keys[i] = tmpKeys[i]
+		oldNode.numKeys++
 	}
 
-	old_node.ptrs[i] = tmp_ptrs[i]
-	k_prime = tmp_keys[split-1]
+	oldNode.ptrs[i] = tmpPtrs[i]
+	prime = tmpKeys[split-1]
 
 	j = 0
-	for i += 1; i < ORDER; i++ {
-		new_node.ptrs[j] = tmp_ptrs[i]
-		new_node.keys[j] = tmp_keys[i]
-		new_node.num_keys++
+	for i++; i < ORDER; i++ {
+		newNode.ptrs[j] = tmpPtrs[i]
+		newNode.keys[j] = tmpKeys[i]
+		newNode.numKeys++
 		j++
 	}
 
-	new_node.ptrs[j] = tmp_ptrs[i]
+	newNode.ptrs[j] = tmpPtrs[i]
 
 	// free tmps...
 	for i = 0; i < ORDER; i++ {
-		tmp_keys[i] = nil
-		tmp_ptrs[i] = nil
+		tmpKeys[i] = nil
+		tmpPtrs[i] = nil
 	}
-	tmp_ptrs[ORDER] = nil
+	tmpPtrs[ORDER] = nil
 
-	new_node.parent = old_node.parent
+	newNode.parent = oldNode.parent
 
-	for i = 0; i <= new_node.num_keys; i++ {
-		child = new_node.ptrs[i].(*node)
-		child.parent = new_node
+	for i = 0; i <= newNode.numKeys; i++ {
+		child = newNode.ptrs[i].(*node)
+		child.parent = newNode
 	}
-	return insert_into_parent(root, old_node, k_prime, new_node)
+	return insertIntoParent(root, oldNode, prime, newNode)
 }

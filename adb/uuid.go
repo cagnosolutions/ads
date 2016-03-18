@@ -8,12 +8,12 @@ import (
 )
 
 func init() {
-	cachedNodeId = getNodeId()
+	cachedNodeID = getNodeID()
 }
 
-var cachedNodeId []byte
+var cachedNodeID []byte
 
-func getNodeId() []byte {
+func getNodeID() []byte {
 	var d [6]byte
 	inet, err := net.Interfaces()
 	if err == nil {
@@ -34,6 +34,7 @@ func getNodeId() []byte {
 	return d[:]
 }
 
+// UUID function
 func UUID() []byte {
 	t := uint64(time.Now().UnixNano()/100 + 0x01b21dd213814000)
 	var b [2]byte
@@ -45,7 +46,7 @@ func UUID() []byte {
 	binary.BigEndian.PutUint16(u[4:6], uint16((t>>32)&0xFFFF))
 	binary.BigEndian.PutUint16(u[6:8], uint16((t>>48)&0x0FFF))
 	binary.BigEndian.PutUint16(u[8:10], clockSeq)
-	copy(u[10:16], cachedNodeId)
+	copy(u[10:16], cachedNodeID)
 	u[8] &= 0x3F
 	u[8] |= 0x80
 	u[6] = (u[6] & 0x0F) | (0x01 << 4)
