@@ -1,4 +1,4 @@
-package bpt
+package adb
 
 import "bytes"
 
@@ -95,4 +95,23 @@ func (t *Tree) Del(key []byte) {
 	if record != nil && leaf != nil {
 		t.root = deleteEntry(t.root, leaf, key, record)
 	}
+}
+
+// All ...
+func (t *Tree) All() []*Record {
+	leaf := findFirstLeaf(t.root)
+	var r []*Record
+	for {
+		for i := 0; i < leaf.numKeys; i++ {
+			if leaf.ptrs[i] != nil {
+				r = append(r, leaf.ptrs[i].(*Record))
+			}
+		}
+		if leaf.ptrs[ORDER-1] == nil {
+			break
+		}
+		leaf = leaf.ptrs[ORDER-1].(*node)
+	}
+
+	return r
 }

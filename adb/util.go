@@ -1,6 +1,5 @@
-package bpt
+package adb
 
-/*
 // find first leaf
 func findFirstLeaf(root *node) *node {
 	if root == nil {
@@ -12,8 +11,6 @@ func findFirstLeaf(root *node) *node {
 	}
 	return c
 }
-
-*/
 
 // Size ...
 func (t *Tree) Size() int {

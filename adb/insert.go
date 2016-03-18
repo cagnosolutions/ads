@@ -1,4 +1,4 @@
-package bpt
+package adb
 
 // first insertion, start a new tree
 func startNewTree(key []byte, ptr *Record) *node {

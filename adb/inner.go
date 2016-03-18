@@ -1,4 +1,4 @@
-package bpt
+package adb
 
 // insert a new key, ptr to a node
 func insertIntoNode(root, n *node, leftIndex int, key []byte, right *node) *node {
