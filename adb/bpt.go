@@ -22,52 +22,66 @@ type node struct {
 
 // Record ...
 type Record struct {
+	Key []byte
 	Val []byte
+	Idx int
+}
+
+// Doc ...
+func Doc(k, v []byte) *Record {
+	return &Record{k, v, -1}
 }
 
 // Tree ...
 type Tree struct {
+	name string
 	root *node
+	meta *MappedMeta
+	file *MappedFile
 }
 
 // NewTree creates and returns a new tree
-func NewTree() *Tree {
-	return &Tree{}
+func NewTree(name string) *Tree {
+	t := &Tree{}
+	t.name = name
+	t.meta = OpenMappedMeta(name)
+	t.file = OpenMappedFile(name, t.meta.Size())
+	return t
 }
 
 // Add ...
-func (t *Tree) Add(key, val []byte) {
-	if t.Get(key) != nil {
+func (t *Tree) Add(rec *Record) {
+	if t.Get(rec.Key) != nil {
 		return
 	}
-	t.Set(key, val)
+	t.Set(rec)
 }
 
 // Set ...
-func (t *Tree) Set(key []byte, val []byte) {
+func (t *Tree) Set(rec *Record) {
 	// ignore duplicates: if a value can be found for
 	// given key, simply return without inserting
-	if r := t.Get(key); r != nil {
-		r.Val = val
+	if r := t.Get(rec.Key); r != nil {
+		r.Val = rec.Val
 		return
 	}
 	// create record ptr for given value
-	ptr := &Record{val}
+	ptr := rec
 	// if the tree is empty, start a new one
 	if t.root == nil {
-		t.root = startNewTree(key, ptr)
+		t.root = startNewTree(rec.Key, ptr)
 		return
 	}
 	// tree already exists, and ready to insert a non
 	// duplicate value. find proper leaf to insert into
-	leaf := findLeaf(t.root, key)
+	leaf := findLeaf(t.root, rec.Key)
 	// if the leaf has room, then insert key and record
 	if leaf.numKeys < ORDER-1 {
-		insertIntoLeaf(leaf, key, ptr)
+		insertIntoLeaf(leaf, rec.Key, ptr)
 		return
 	}
 	// otherwise, insert, split, and balance... returning updated root
-	t.root = insertIntoLeafAfterSplitting(t.root, leaf, key, ptr)
+	t.root = insertIntoLeafAfterSplitting(t.root, leaf, rec.Key, ptr)
 }
 
 // Get find record for a given key

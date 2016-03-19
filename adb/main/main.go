@@ -7,18 +7,24 @@ import (
 )
 
 func main() {
-	t := adb.NewTree()
 
+	// create a new tree instance
+	t := adb.NewTree("users")
+
+	// add 255 records....
 	for i := 0; i < 255; i++ {
-		//x := adb.UUID()
-		t.Add(adb.UUID(), []byte{byte(i)})
-	}
-	fmt.Println(t.Size())
-	r := t.All()
-	for _, v := range r {
-		fmt.Printf("%d\n", v.Val)
+		t.Add(adb.Doc(adb.UUID(), []byte{byte(i)}))
 	}
 
+	// print total record count
+	fmt.Println(t.Size())
+
+	// range all records in order
+	for _, r := range t.All() {
+		fmt.Printf("doc-> k:%x, v:%d\n", r.Key, r.Val)
+	}
+
+	// wait... press any key to continue
 	pause()
 }
 
