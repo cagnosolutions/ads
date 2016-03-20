@@ -28,43 +28,48 @@ type Record struct {
 }
 
 // Doc ...
-func Doc(k, v []byte) *Record {
-	return &Record{k, v, -1}
+func Doc(k, v []byte, p int) *Record {
+	return &Record{k, v, p}
 }
 
 // Tree ...
 type Tree struct {
-	name string
 	root *node
-	meta *MappedMeta
-	file *MappedFile
 }
 
 // NewTree creates and returns a new tree
-func NewTree(name string) *Tree {
-	t := &Tree{}
-	t.name = name
-	t.meta = OpenMappedMeta(name)
-	t.file = OpenMappedFile(name, t.meta.Size())
-	return t
+func NewTree() *Tree {
+	return &Tree{}
+}
+
+// Has ...
+func (t *Tree) Has(key []byte) bool {
+	return t.Get(key) != nil
 }
 
 // Add ...
 func (t *Tree) Add(rec *Record) {
+	// ignore duplicates: if a value
+	// can be found for a given key,
+	// simply return, don't insert
 	if t.Get(rec.Key) != nil {
 		return
 	}
+	// otherwise simply call set
 	t.Set(rec)
 }
 
 // Set ...
 func (t *Tree) Set(rec *Record) {
-	// ignore duplicates: if a value can be found for
-	// given key, simply return without inserting
+	// don't ignore duplicates: if
+	// a value can be found for a
+	// given key, simply update the
+	// record value and return
 	if r := t.Get(rec.Key); r != nil {
 		r.Val = rec.Val
 		return
 	}
+	// otherwise...
 	// create record ptr for given value
 	ptr := rec
 	// if the tree is empty, start a new one
