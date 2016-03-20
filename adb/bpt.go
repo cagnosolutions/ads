@@ -27,6 +27,15 @@ type Record struct {
 	Idx int
 }
 
+func enc(r *Record) []byte {
+	return append(append(r.Key, byte('|')), r.Val...)
+}
+
+func dec(d []byte, p int) *Record {
+	b := bytes.Split(d, []byte{'|'})
+	return &Record{b[0], b[1], p}
+}
+
 // Doc ...
 func Doc(k, v []byte, p int) *Record {
 	return &Record{k, v, p}
@@ -35,11 +44,19 @@ func Doc(k, v []byte, p int) *Record {
 // Tree ...
 type Tree struct {
 	root *node
+	name string
+	size int
+	meta *MappedMeta
+	file *MappedFile
 }
 
 // NewTree creates and returns a new tree
-func NewTree() *Tree {
-	return &Tree{}
+func NewTree(name string) *Tree {
+	t := &Tree{}
+	t.name = name
+	t.meta = OpenMappedMeta(name)
+	t.file = OpenMappedFile(name, t.meta.Size())
+	return t
 }
 
 // Has ...
@@ -66,10 +83,24 @@ func (t *Tree) Set(rec *Record) {
 	// given key, simply update the
 	// record value and return
 	if r := t.Get(rec.Key); r != nil {
+		// update in tree
 		r.Val = rec.Val
+		// update on disk
+		t.file.Set(r.Idx, enc(r))
 		return
 	}
-	// otherwise...
+	// otherwise insert new data
+	if rec.Idx == -1 {
+		// if brand new record, find a page in meta index
+		if p := t.meta.Add(); p != -1 {
+			// change record index to found page
+			rec.Idx = p
+			// indexed in meta, and to page on disk
+			t.file.Set(rec.Idx, enc(rec))
+		}
+	}
+	// increase size
+	t.size++
 	// create record ptr for given value
 	ptr := rec
 	// if the tree is empty, start a new one
@@ -112,6 +143,11 @@ func (t *Tree) Del(key []byte) {
 	record := t.Get(key)
 	leaf := findLeaf(t.root, key)
 	if record != nil && leaf != nil {
+		// wipe page in file
+		t.file.Del(record.Idx)
+		// remove from meta index
+		t.meta.Del(record.Idx)
+		// remove from tree, and rebalance
 		t.root = deleteEntry(t.root, leaf, key, record)
 	}
 }
@@ -133,4 +169,30 @@ func (t *Tree) All() []*Record {
 	}
 
 	return r
+}
+
+// Count ...
+func (t *Tree) Count() int {
+	if t.root == nil {
+		return -1
+	}
+	c := t.root
+	for !c.isLeaf {
+		c = c.ptrs[0].(*node)
+	}
+	var size int
+	for {
+		size += c.numKeys
+		if c.ptrs[ORDER-1] != nil {
+			c = c.ptrs[ORDER-1].(*node)
+		} else {
+			break
+		}
+	}
+	return size
+}
+
+// Size ...
+func (t *Tree) Size() int {
+	return t.size
 }

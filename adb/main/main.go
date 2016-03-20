@@ -13,15 +13,18 @@ func main() {
 
 	// add 255 records....
 	for i := 0; i < 255; i++ {
-		t.Add(adb.Doc(adb.UUID(), []byte{byte(i)}))
+		k := fmt.Sprintf(`record-%.3d`, i)
+		v := fmt.Sprintf(`{"id":%.3d,"desc":"this is record #%.3d"}`, i, i)
+		t.Add(adb.Doc([]byte(k), []byte(v), -1))
 	}
 
 	// print total record count
 	fmt.Println(t.Size())
+	fmt.Println(t.Count())
 
 	// range all records in order
 	for _, r := range t.All() {
-		fmt.Printf("doc-> k:%x, v:%d\n", r.Key, r.Val)
+		fmt.Printf("doc-> k:%x, v:%s\n", r.Key, r.Val)
 	}
 
 	// wait... press any key to continue

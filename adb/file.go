@@ -44,17 +44,19 @@ func OpenMappedFile(path string, used int) *MappedFile {
 // updates existing or inserts new block at offset n
 func (mf *MappedFile) Set(n int, b []byte) {
 	mf.checkGrow()
-	if mf.data[n] == 0x00 {
+	pos := n * SYS_PAGE
+	if mf.data[pos] == 0x00 {
 		mf.used++ // we are adding
 	}
 	// otherwise we are just updating
-	copy(mf.data[n:n+SYS_PAGE], b)
+	copy(mf.data[pos:pos+SYS_PAGE], b)
 }
 
 // returns block at offset n
 func (mf *MappedFile) Get(n int) []byte {
-	if n > -1 && mf.data[n] != 0x00 {
-		return mf.data[n : n+SYS_PAGE]
+	pos := n * SYS_PAGE
+	if n > -1 && mf.data[pos] != 0x00 {
+		return mf.data[pos : pos+SYS_PAGE]
 	}
 	return nil
 }
@@ -62,7 +64,8 @@ func (mf *MappedFile) Get(n int) []byte {
 // removes block at offset n
 func (mf *MappedFile) Del(n int) {
 	mf.used--
-	copy(mf.data[n:], NIL_PAGE)
+	pos := n * SYS_PAGE
+	copy(mf.data[pos:pos+SYS_PAGE], NIL_PAGE)
 }
 
 // closes the mapped file

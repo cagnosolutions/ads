@@ -1,56 +1,87 @@
 package adb
 
-import "errors"
-
-var (
-	ErrDupKey    = errors.New("found duplicate key; no duplicate keys allowed")
-	ErrStoreFull = errors.New("could not find space to insert; store appears to be full")
+import (
+	"bytes"
+	"errors"
+	"sync"
 )
 
+var (
+	ErrTooLarge  = errors.New("key and value data is too large; maximum limit of 4KB")
+	ErrStoreFull = errors.New("maximum number of records was reached; store is full")
+	ErrNotFound  = errors.New("could not locate; not found")
+)
+
+func (st *Store) isOk(k, v []byte) error {
+	if (len(k) + 1 + len(v)) > SYS_PAGE {
+		return ErrTooLarge
+	}
+	if st.index.Size()+1 > MAX_DOCS {
+		return ErrStoreFull
+	}
+	return nil
+}
+
 type Store struct {
-	name string
-	indx *Tree
-	meta *MappedMeta
-	file *MappedFile
+	index *Tree
+	sync.RWMutex
 }
 
 func NewStore(name string) *Store {
-	st := &Store{}
-	st.name = name
-	st.indx = NewTree()
-	st.meta = OpenMappedMeta(name)
-	st.file = OpenMappedFile(name, st.meta.Size())
-	return st
+	return &Store{
+		index: NewTree(name),
+	}
 }
 
 func (st *Store) Add(k, v []byte) error {
-	if st.indx.Has(k) {
-		return ErrDupKey
+	if err := st.isOk(k, v); err != nil {
+		return err
 	}
-	if p := st.meta.Add(); p != -1 {
-		doc := Doc(k, v, p)
-		b, err := Enc(doc)
-		if err != nil {
-			return err
+	st.Lock()
+	st.index.Add(Doc(k, v, -1))
+	st.Unlock()
+	return nil
+}
+
+func (st *Store) Set(k, v []byte) error {
+	if err := st.isOk(k, v); err != nil {
+		return err
+	}
+	st.Lock()
+	st.index.Set(Doc(k, v, -1))
+	st.Unlock()
+	return nil
+}
+
+func (st *Store) Get(k []byte) []byte {
+	st.RLock()
+	defer st.RUnlock()
+	rec := st.index.Get(k)
+	if rec != nil {
+		return rec.Val
+	}
+	return nil
+}
+
+func (st *Store) All() []byte {
+	st.RLock()
+	size := st.index.Size()
+	recs := make([][]byte, size)
+	for i, rec := range st.index.All() {
+		if i == 0 {
+			recs[i] = append([]byte{'['}, rec.Val...)
 		}
-		st.file.Set(p, b)
-		st.indx.Add(doc)
+		if i == size-1 {
+			recs[i] = append(rec.Val, byte(']'))
+		}
+		recs[i] = rec.Val
 	}
-	return ErrStoreFull
+	st.RUnlock()
+	return bytes.Join(recs, []byte{','})
 }
 
-func (st *Store) Set(k, v []byte) {
-
-}
-
-func (st *Store) Get(k []byte, v interface{}) {
-
-}
-
-func (st *Store) All(v interface{}) {
-
-}
-
-func (st *Store) Del(key []byte) {
-
+func (st *Store) Del(k []byte) {
+	st.Lock()
+	st.index.Del(k)
+	st.Unlock()
 }
