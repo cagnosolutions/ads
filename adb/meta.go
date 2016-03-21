@@ -53,6 +53,13 @@ func (mx *MappedMeta) bits(n byte) int {
 	return int(TBL[n>>4] + TBL[n&0x0f])
 }
 
+// closes the mapped file
+func (mx *MappedMeta) CloseMappedMeta() {
+	mx.meta.Sync()
+	mx.meta.Munmap()
+	mx.file.Close()
+}
+
 func (mx *MappedMeta) Next() int {
 	for i := 0; i < len(mx.meta); i++ {
 		if mx.bits(mx.meta[i]) < 8 {
@@ -70,7 +77,7 @@ func (mx *MappedMeta) Next() int {
 func (mx *MappedMeta) Size() int {
 	var used int
 	for i := 0; i < len(mx.meta); i++ {
-		if mx.bits(mx.meta[i]) < 8 {
+		if mx.bits(mx.meta[i]) <= 8 {
 			for j := 0; j < 8; j++ {
 				if mx.Has((i * WS) + j) {
 					used++
@@ -79,4 +86,19 @@ func (mx *MappedMeta) Size() int {
 		}
 	}
 	return used
+}
+
+func (mx *MappedMeta) All() []int {
+	var all []int
+	for i := 0; i < len(mx.meta); i++ {
+		if mx.bits(mx.meta[i]) <= 8 {
+			for j := 0; j < 8; j++ {
+				cur := (i * WS) + j
+				if mx.Has(cur) {
+					all = append(all, cur)
+				}
+			}
+		}
+	}
+	return all
 }

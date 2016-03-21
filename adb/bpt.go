@@ -56,6 +56,11 @@ func NewTree(name string) *Tree {
 	t.name = name
 	t.meta = OpenMappedMeta(name)
 	t.file = OpenMappedFile(name, t.meta.Size())
+	t.size = t.meta.Size()
+	for _, p := range t.meta.All() {
+		b := t.file.Get(p)
+		t.Put(dec(b, p))
+	}
 	return t
 }
 
@@ -74,6 +79,34 @@ func (t *Tree) Add(rec *Record) {
 	}
 	// otherwise simply call set
 	t.Set(rec)
+}
+
+// Put is mainly used for re-indexing
+// as it assumes the data to already
+// be contained on the disk, so it's
+// policy is to just forcefully put it
+// in the btree index. it will overwrite
+// duplicate keys, as it does not check
+// to see if the key already exists...
+func (t *Tree) Put(rec *Record) {
+	// create record ptr for given value
+	ptr := rec // NOTE: THIS MAY BE UN-NESSICARY
+	// if the tree is empty, start a new one
+	if t.root == nil {
+		t.root = startNewTree(rec.Key, ptr)
+		return
+	}
+	// tree already exists, and ready to insert a non
+	// duplicate value. find proper leaf to insert into
+	leaf := findLeaf(t.root, rec.Key)
+	// if the leaf has room, then insert key and record
+	if leaf.numKeys < ORDER-1 {
+		insertIntoLeaf(leaf, rec.Key, ptr)
+		return
+	}
+	// otherwise, insert, split, and balance... returning updated root
+	t.root = insertIntoLeafAfterSplitting(t.root, leaf, rec.Key, ptr)
+
 }
 
 // Set ...
@@ -195,4 +228,10 @@ func (t *Tree) Count() int {
 // Size ...
 func (t *Tree) Size() int {
 	return t.size
+}
+
+// Close ...
+func (t *Tree) Close() {
+	t.file.CloseMappedFile()
+	t.meta.CloseMappedMeta()
 }

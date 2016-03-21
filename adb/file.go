@@ -77,7 +77,7 @@ func (mf *MappedFile) CloseMappedFile() {
 
 // check to see if we should grow
 func (mf *MappedFile) checkGrow() {
-	if mf.used+1 < MAX_DOCS {
+	if mf.used+2 < MAX_DOCS {
 		return // no need to grow
 	}
 	// unmap, grow underlying file and remap
