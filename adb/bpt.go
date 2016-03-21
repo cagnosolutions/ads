@@ -1,6 +1,9 @@
 package adb
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+)
 
 // ORDER is defined as the maximum number of pointers in any given node
 // MIN_ORDER <= ORDER <= MAX_ORDER
@@ -33,6 +36,10 @@ func enc(r *Record) []byte {
 
 func dec(d []byte, p int) *Record {
 	b := bytes.Split(d, []byte{'|'})
+	if len(b) != 2 {
+		fmt.Printf("LEN: %d, DATA: % x\n", len(b), d)
+		panic("Corrupt data")
+	}
 	return &Record{b[0], b[1], p}
 }
 
@@ -55,8 +62,8 @@ func NewTree(name string) *Tree {
 	t := &Tree{}
 	t.name = name
 	t.meta = OpenMappedMeta(name)
-	t.file = OpenMappedFile(name, t.meta.Size())
-	t.size = t.meta.Size()
+	t.file = OpenMappedFile(name, t.meta.used)
+	t.size = t.meta.used
 	for _, p := range t.meta.All() {
 		b := t.file.Get(p)
 		t.Put(dec(b, p))
@@ -125,7 +132,7 @@ func (t *Tree) Set(rec *Record) {
 	// otherwise insert new data
 	if rec.Idx == -1 {
 		// if brand new record, find a page in meta index
-		if p := t.meta.Add(); p != -1 {
+		if p := t.meta.Add(); p != -1 { // NOTE: this should never be -1
 			// change record index to found page
 			rec.Idx = p
 			// indexed in meta, and to page on disk

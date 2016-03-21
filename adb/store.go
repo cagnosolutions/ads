@@ -16,9 +16,6 @@ func (st *Store) isOk(k, v []byte) error {
 	if (len(k) + 1 + len(v)) > SYS_PAGE {
 		return ErrTooLarge
 	}
-	if st.index.Size()+1 > MAX_DOCS {
-		return ErrStoreFull
-	}
 	return nil
 }
 

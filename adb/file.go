@@ -1,19 +1,13 @@
 package adb
 
-import (
-	"os"
-	"syscall"
-)
+import "os"
 
 var (
-	SYS_PAGE = syscall.Getpagesize()
-	NIL_PAGE = make([]byte, SYS_PAGE, SYS_PAGE)
+	nilPage = make([]byte, SYS_PAGE, SYS_PAGE)
 )
 
 const (
-	MIN_MMAP = 1 << 24  // 16 MB
-	MAX_MMAP = 1 << 31  //  2 GB
-	MAX_DOCS = IDX_SIZE // 524288
+	fileSize = 1 << 24 // 16 MB
 )
 
 type MappedFile struct {
@@ -29,7 +23,7 @@ type MappedFile struct {
 func OpenMappedFile(path string, used int) *MappedFile {
 	file, path, size := OpenFile(path + ".dat")
 	if size == 0 {
-		size = resize(file.Fd(), MIN_MMAP)
+		size = resize(file.Fd(), fileSize)
 	}
 	data := Mmap(file, 0, size)
 	return &MappedFile{
@@ -65,7 +59,7 @@ func (mf *MappedFile) Get(n int) []byte {
 func (mf *MappedFile) Del(n int) {
 	mf.used--
 	pos := n * SYS_PAGE
-	copy(mf.data[pos:pos+SYS_PAGE], NIL_PAGE)
+	copy(mf.data[pos:pos+SYS_PAGE], nilPage)
 }
 
 // closes the mapped file
@@ -82,6 +76,6 @@ func (mf *MappedFile) checkGrow() {
 	}
 	// unmap, grow underlying file and remap
 	mf.data.Munmap()
-	mf.size = resize(mf.file.Fd(), mf.size+MIN_MMAP)
+	mf.size = resize(mf.file.Fd(), mf.size+fileSize)
 	mf.data = Mmap(mf.file, 0, mf.size)
 }

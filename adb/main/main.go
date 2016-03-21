@@ -16,16 +16,16 @@ func main() {
 	time.Sleep(time.Duration(5) * time.Second)
 
 	// add 255 records....
-	for i := 0; i < 4097; i++ {
+	/*for i := 0; i < 524289; i++ {
 		x := adb.UUID()
 		v := fmt.Sprintf(`{"id":%x,"desc":"this is record %d"}`, x, i+1)
 		t.Add(adb.Doc(x, []byte(v), -1))
-	}
+	}*/
 
 	// range all records in order
-	for _, r := range t.All() {
+	/*for _, r := range t.All() {
 		fmt.Printf("doc-> k:%x, v:%s\n", r.Key, r.Val)
-	}
+	}*/
 
 	// close
 	t.Close()
