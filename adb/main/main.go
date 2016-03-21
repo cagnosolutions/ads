@@ -16,9 +16,9 @@ func main() {
 	time.Sleep(time.Duration(5) * time.Second)
 
 	// add 255 records....
-	for i := 0; i < 255; i++ {
+	for i := 0; i < 4097; i++ {
 		x := adb.UUID()
-		v := fmt.Sprintf(`{"id":%x,"desc":"this is record %x"}`, x, x)
+		v := fmt.Sprintf(`{"id":%x,"desc":"this is record %d"}`, x, i+1)
 		t.Add(adb.Doc(x, []byte(v), -1))
 	}
 
