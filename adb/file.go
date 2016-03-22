@@ -50,7 +50,7 @@ func (mf *MappedFile) Set(n int, b []byte) {
 func (mf *MappedFile) Get(n int) []byte {
 	pos := n * SYS_PAGE
 	if n > -1 && mf.data[pos] != 0x00 {
-		return mf.data[pos : pos+SYS_PAGE]
+		return strip(mf.data[pos : pos+SYS_PAGE])
 	}
 	return nil
 }

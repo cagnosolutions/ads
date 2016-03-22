@@ -14,7 +14,7 @@ type R struct {
 func main() {
 
 	// create a new tree instance
-	t := adb.NewTree("users", adb.ENC, adb.DEC)
+	t := adb.NewTree("users")
 
 	// add 255 records....
 	for i := 0; i < 524289; i++ {

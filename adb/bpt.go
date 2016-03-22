@@ -1,6 +1,9 @@
 package adb
 
-import "bytes"
+import (
+	"bytes"
+	"encoding/json"
+)
 
 // ORDER is defined as the maximum number of pointers in any given node
 // MIN_ORDER <= ORDER <= MAX_ORDER
@@ -26,7 +29,7 @@ type node struct {
 // Record ...
 type Record struct {
 	Key []byte
-	Val []byte
+	//Val []byte
 	Idx int
 }
 
@@ -50,30 +53,32 @@ func Doc(k, v []byte, p int) *Record {
 type Tree struct {
 	root *node
 	name string
-	enc  Encoder
-	dec  Decoder
 	size int
 	meta *MappedMeta
 	file *MappedFile
 }
 
 // NewTree creates and returns a new tree
-func NewTree(name string, enc Encoder, dec Decoder) *Tree {
+func NewTree(name string) *Tree {
 	t := &Tree{}
 	t.name = name
-	t.enc = enc
-	t.dec = dec
 	t.meta = OpenMappedMeta(name)
 	t.file = OpenMappedFile(name, t.meta.used)
 	t.size = t.meta.used
-	for _, p := range t.meta.All() {
-		var r Record
-		if err := t.dec(t.file.Get(p), &r); err != nil {
-			Logger(err.Error())
-		}
-		t.Put(&r)
-	}
+	t.load()
+
 	return t
+}
+
+func (t *Tree) load() {
+	data := struct {
+		Key string
+		Val interface{}
+	}{}
+	for _, p := range t.meta.All() {
+		Logger(json.Unmarshal(t.file.Get(p), &data).Error())
+		t.Put(&Record{[]byte(data.Key), p})
+	}
 }
 
 // Has ...

@@ -61,3 +61,54 @@ func resize(fd uintptr, size int) int {
 	}
 	return size
 }
+
+func strip(b []byte) []byte {
+	for i, j := 0, len(b)-1; i <= j; i, j = i+1, j-1 {
+		if b[i] == 0x00 {
+			return b[:i]
+		}
+		if b[j] != 0x00 {
+			return b[:j+1]
+		}
+	}
+	return b
+}
+
+/*
+
+func Encode(k string, v interface{}) []byte {
+	data := struct {
+		Key string
+		Val interface{}
+	}{
+		k,
+		v,
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil
+	}
+	return b
+}
+
+func DecodeVal(b []byte, v interface{}) {
+	data := struct {
+		Key string
+		Val interface{}
+	}{
+		Val: v,
+	}
+	json.Unmarshal(b, &data)
+}
+
+func DecodeRecord(b []byte) Record {
+	data := struct {
+		Key string
+		Val interface{}
+	}{}
+	err := json.Unmarshal(b, &data)
+	return Record{[]byte(data.Key), 4}
+}
+
+
+*/
