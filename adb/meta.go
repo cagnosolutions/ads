@@ -1,9 +1,6 @@
 package adb
 
-import (
-	"fmt"
-	"os"
-)
+import "os"
 
 const (
 	metaSize = 1 << 19 // in bits
@@ -25,7 +22,6 @@ func OpenMappedMeta(path string) *MappedMeta {
 	if size == 0 {
 		size = resize(file.Fd(), metaSize/wordSize)
 	}
-	fmt.Println("SIZE: ", size)
 	mx := &MappedMeta{}
 	mx.path = path + ".idx"
 	mx.file = file

@@ -1,9 +1,6 @@
 package adb
 
-import (
-	"bytes"
-	"fmt"
-)
+import "bytes"
 
 // ORDER is defined as the maximum number of pointers in any given node
 // MIN_ORDER <= ORDER <= MAX_ORDER
@@ -14,6 +11,9 @@ import (
 
 // ORDER maximum number of children a non-leaf node can hold
 const ORDER = 32
+
+type Encoder func(interface{}) ([]byte, error)
+type Decoder func([]byte, interface{}) error
 
 type node struct {
 	numKeys int
@@ -30,18 +30,16 @@ type Record struct {
 	Idx int
 }
 
+/*
 func enc(r *Record) []byte {
 	return append(append(r.Key, byte('|')), r.Val...)
 }
 
 func dec(d []byte, p int) *Record {
 	b := bytes.Split(d, []byte{'|'})
-	if len(b) != 2 {
-		fmt.Printf("LEN: %d, DATA: % x\n", len(b), d)
-		panic("Corrupt data")
-	}
 	return &Record{b[0], b[1], p}
 }
+*/
 
 // Doc ...
 func Doc(k, v []byte, p int) *Record {
@@ -52,21 +50,28 @@ func Doc(k, v []byte, p int) *Record {
 type Tree struct {
 	root *node
 	name string
+	enc  Encoder
+	dec  Decoder
 	size int
 	meta *MappedMeta
 	file *MappedFile
 }
 
 // NewTree creates and returns a new tree
-func NewTree(name string) *Tree {
+func NewTree(name string, enc Encoder, dec Decoder) *Tree {
 	t := &Tree{}
 	t.name = name
+	t.enc = enc
+	t.dec = dec
 	t.meta = OpenMappedMeta(name)
 	t.file = OpenMappedFile(name, t.meta.used)
 	t.size = t.meta.used
 	for _, p := range t.meta.All() {
-		b := t.file.Get(p)
-		t.Put(dec(b, p))
+		var r Record
+		if err := t.dec(t.file.Get(p), &r); err != nil {
+			Logger(err.Error())
+		}
+		t.Put(&r)
 	}
 	return t
 }
@@ -125,8 +130,16 @@ func (t *Tree) Set(rec *Record) {
 	if r := t.Get(rec.Key); r != nil {
 		// update in tree
 		r.Val = rec.Val
+		// encode...
+		b, err := t.enc(r)
+		if err != nil {
+			Logger(err.Error())
+		}
+		if len(b) > SYS_PAGE {
+			Logger("document is larger than system page size; cannot persist")
+		}
 		// update on disk
-		t.file.Set(r.Idx, enc(r))
+		t.file.Set(r.Idx, b)
 		return
 	}
 	// otherwise insert new data
@@ -135,8 +148,16 @@ func (t *Tree) Set(rec *Record) {
 		if p := t.meta.Add(); p != -1 { // NOTE: this should never be -1
 			// change record index to found page
 			rec.Idx = p
-			// indexed in meta, and to page on disk
-			t.file.Set(rec.Idx, enc(rec))
+			// encode...
+			b, err := t.enc(rec)
+			if err != nil {
+				Logger(err.Error())
+			}
+			if len(b) > SYS_PAGE {
+				Logger("document is larger than system page size; cannot persist")
+			}
+			// indexed in meta, add to page on disk
+			t.file.Set(rec.Idx, b)
 		}
 	}
 	// increase size

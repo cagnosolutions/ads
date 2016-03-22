@@ -2,26 +2,26 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/cagnosolutions/ads/adb"
 )
 
+type R struct {
+	Id   string `json:"id"`
+	Desc string `json:"desc"`
+}
+
 func main() {
 
 	// create a new tree instance
-	t := adb.NewTree("users")
-	fmt.Printf("tree size: %d\n", t.Size())
-
-	time.Sleep(time.Duration(5) * time.Second)
+	t := adb.NewTree("users", adb.ENC, adb.DEC)
 
 	// add 255 records....
-	/*for i := 0; i < 524289; i++ {
+	for i := 0; i < 524289; i++ {
 		x := adb.UUID()
 		v := fmt.Sprintf(`{"id":%x,"desc":"this is record %d"}`, x, i+1)
 		t.Add(adb.Doc(x, []byte(v), -1))
-	}*/
-
+	}
 	// range all records in order
 	/*for _, r := range t.All() {
 		fmt.Printf("doc-> k:%x, v:%s\n", r.Key, r.Val)

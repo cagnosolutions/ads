@@ -26,7 +26,7 @@ type Store struct {
 
 func NewStore(name string) *Store {
 	return &Store{
-		index: NewTree(name),
+		index: NewTree(name, ENC, DEC),
 	}
 }
 
