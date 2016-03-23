@@ -1,10 +1,6 @@
 package adb
 
-import (
-	"encoding/json"
-	"log"
-	"sync"
-)
+import "sync"
 
 type DB struct {
 	stores map[string]*Store
@@ -45,13 +41,8 @@ func (db *DB) Add(store, key string, val interface{}) bool {
 	if !ok {
 		return false
 	}
-	b, err := json.Marshal(val)
-	if err != nil {
-		return logger(err)
-	}
-	err = st.Add([]byte(key), b)
-	if err != nil {
-		return logger(err)
+	if err := st.Add(key, val); err != nil {
+		return false
 	}
 	return true
 }
@@ -61,13 +52,8 @@ func (db *DB) Set(store, key string, val interface{}) bool {
 	if !ok {
 		return false
 	}
-	b, err := json.Marshal(val)
-	if err != nil {
-		return logger(err)
-	}
-	err = st.Set([]byte(key), b)
-	if err != nil {
-		return logger(err)
+	if err := st.Set(key, val); err != nil {
+		return false
 	}
 	return true
 }
@@ -77,9 +63,8 @@ func (db *DB) Get(store, key string, ptr interface{}) bool {
 	if !ok {
 		return false
 	}
-	b := st.Get([]byte(key))
-	if err := json.Unmarshal(b, ptr); err != nil {
-		return logger(err)
+	if err := st.Get(key, ptr); err != nil {
+		return false
 	}
 	return true
 }
@@ -89,10 +74,19 @@ func (db *DB) Del(store, key string) bool {
 	if !ok {
 		return false
 	}
-	st.Del([]byte(key))
+	st.Del(key)
 	return true
 }
 
+func (db *DB) Close() {
+	db.Lock()
+	defer db.Unlock()
+	for _, st := range db.stores {
+		st.index.Close()
+	}
+}
+
+/*
 func (db *DB) All(store string, ptr interface{}) bool {
 	st, ok := db.namespace(store)
 	if !ok {
@@ -103,9 +97,4 @@ func (db *DB) All(store string, ptr interface{}) bool {
 	}
 	return true
 }
-
-func logger(err error) bool {
-	// log
-	log.Printf("ERROR: %v\n", err)
-	return false
-}
+*/
