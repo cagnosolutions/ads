@@ -1,13 +1,13 @@
-03/22/16 08:00pm 
+03/22/16 08:00pm
 ----------------
 encoder and decoder tests at store level --> http://play.golang.org/p/n0lD1XcGQR
 
 03/22/16 09:30pm
 ----------------
 I at least got everything converted over to the place where you can run ./main/main.go
-and it grows and writes to disk properly. I havent tested anything else other than that.
-So far, the chages I have made have touched: db.go, store.go, bpt.go (and of course notes.txt
-as well as main/main.go); hopefully this is enought info to troubleshoot anything that you may
+and it grows and writes to disk properly. I haven't tested anything else other than that.
+So far, the changes I have made have touched: db.go, store.go, bpt.go (and of course notes.txt
+as well as main/main.go); hopefully this is enough info to troubleshoot anything that you may
 be facing. Just have a look at ./main/main.go if you have any questions, it should illuminate
 any possible questions you may have, unless I totally forgot about something (which is totally
 possible; lets be real.)
