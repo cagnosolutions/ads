@@ -49,19 +49,19 @@ func main() {
 		v := MakeUser(i)
 		db.Add(STORE, k, v)
 	}
-	fmt.Printf("done adding records...\n")
 
-	fmt.Printf("get records by key...\n\n")
-	for i := 0; i < COUNT; i++ {
-		var user User
-		ok := db.Get(STORE, fmt.Sprintf("%d-%d", i, i), &user)
-		if !ok {
-			log.Fatalf("Error getting user!!\n")
-		}
-		fmt.Printf("%v\n", user)
+	fmt.Printf("done adding records; let's get ALL records...\n")
+	var users []User
+	if ok := db.All(STORE, &users); !ok {
+		log.Fatalf("Error getting all users from %s\n", STORE)
 	}
 
-	fmt.Printf("\ndone getting records...\n")
+	fmt.Printf("printing out individual users found...\n")
+	for i, u := range users {
+		fmt.Printf("(%d) %+v\n", i, u)
+	}
+
+	fmt.Printf("\nfinished...\n")
 	// close
 	db.Close()
 

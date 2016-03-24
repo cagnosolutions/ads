@@ -175,9 +175,7 @@ func (t *Tree) Get(key []byte) *Record {
 
 func (t *Tree) GetDoc(key []byte) []byte {
 	if rec := t.Get(key); rec != nil {
-		if b := t.file.GetDoc(rec.Idx, len(key)); b[0] != 0x00 {
-			return b
-		}
+		return t.file.GetDoc(rec.Idx, len(key))
 	}
 	return nil
 }
@@ -197,22 +195,26 @@ func (t *Tree) Del(key []byte) {
 }
 
 // All ...
-func (t *Tree) All() []*Record {
+func (t *Tree) All() [][]byte {
 	leaf := findFirstLeaf(t.root)
-	var r []*Record
+	var docs [][]byte
 	for {
 		for i := 0; i < leaf.numKeys; i++ {
 			if leaf.ptrs[i] != nil {
-				r = append(r, leaf.ptrs[i].(*Record))
+				// get record from leaf
+				rec := leaf.ptrs[i].(*Record)
+				// get doc and append to docs
+				docs = append(docs, t.file.GetDoc(rec.Idx, len(rec.Key)))
 			}
 		}
+		// we're at the end, no more leaves to iterate
 		if leaf.ptrs[ORDER-1] == nil {
 			break
 		}
+		// increment/follow pointer to next leaf node
 		leaf = leaf.ptrs[ORDER-1].(*node)
 	}
-
-	return r
+	return docs
 }
 
 // Count ...

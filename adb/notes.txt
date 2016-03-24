@@ -1,19 +1,12 @@
-03/22/16 08:00pm
+03/24/16 05:40pm
 ----------------
-encoder and decoder tests at store level --> http://play.golang.org/p/n0lD1XcGQR
++ added getdoc() method and helpers
++ commented up util.go
++ completed an all method
++ fixed a few bugs
 
-03/22/16 09:30pm
-----------------
-I at least got everything converted over to the place where you can run ./main/main.go
-and it grows and writes to disk properly. I haven't tested anything else other than that.
-So far, the changes I have made have touched: db.go, store.go, bpt.go (and of course notes.txt
-as well as main/main.go); hopefully this is enough info to troubleshoot anything that you may
-be facing. Just have a look at ./main/main.go if you have any questions, it should illuminate
-any possible questions you may have, unless I totally forgot about something (which is totally
-possible; lets be real.)
-
-Side note: i just texted Gabe about 15 min ago, and he said he's planning on being in here this
-Thursday. Just wanted to relay that in case you haven't hear from him. Thanks Greg, you're a life-
-saver, but not the the candy type of way... like in the flotation device type of way.
-EOT
-.
+- wite disk based query method (using
+  the boyer-moore algorithm) to seek
+  and fuzzy match the data. add filters
+  to this fuzzy query method in order
+  to allow for a greater query control.

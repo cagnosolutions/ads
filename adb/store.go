@@ -1,6 +1,7 @@
 package adb
 
 import (
+	"bytes"
 	"errors"
 	"sync"
 )
@@ -45,15 +46,33 @@ func (st *Store) Set(k string, v interface{}) error {
 	return nil
 }
 
-func (st *Store) Get(k string, v interface{}) error {
+func (st *Store) Get(k string, ptr interface{}) error {
 	st.RLock()
 	defer st.RUnlock()
 	if doc := st.index.GetDoc([]byte(k)); doc != nil {
-		if err := decode(doc, v); err != nil {
+		if err := decode(doc, ptr); err != nil {
 			return err
 		}
+		return nil
 	}
 	return ErrNotFound
+}
+
+func (st *Store) Del(k string) {
+	st.Lock()
+	st.index.Del([]byte(k))
+	st.Unlock()
+}
+
+func (st *Store) All(ptr interface{}) error {
+	st.RLock()
+	defer st.RUnlock()
+	docs := bytes.Join(st.index.All(), []byte{','})
+	docs = append([]byte{'['}, append(docs, byte(']'))...)
+	if err := decode(docs, ptr); err != nil {
+		return err
+	}
+	return nil
 }
 
 /*
@@ -74,9 +93,3 @@ func (st *Store) All() []byte {
 	return bytes.Join(recs, []byte{','})
 }
 */
-
-func (st *Store) Del(k string) {
-	st.Lock()
-	st.index.Del([]byte(k))
-	st.Unlock()
-}
