@@ -1,6 +1,7 @@
 package adb
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"syscall"
@@ -109,6 +110,26 @@ func DecodeRecord(b []byte) Record {
 	err := json.Unmarshal(b, &data)
 	return Record{[]byte(data.Key), 4}
 }
-
-
 */
+
+func GetDocArr(d []byte, kLen int) []byte {
+	start := kLen + 4
+	var count int
+	for i, j, set := start, len(d)-1, 1; i < j; i, j = i+1, j-1 {
+		count++
+		if d[i] == '[' {
+			set++
+		}
+		if d[i] == ']' {
+			set--
+		}
+		if set == 0 || d[j] == ']' {
+			fmt.Printf("Took %d loops\n", count)
+			if d[i] == ']' {
+				return d[start:i]
+			}
+			return d[start:j]
+		}
+	}
+	return d
+}
