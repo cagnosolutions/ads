@@ -175,7 +175,7 @@ func (t *Tree) Get(key []byte) *Record {
 
 func (t *Tree) GetDoc(key []byte) []byte {
 	if rec := t.Get(key); rec != nil {
-		if b := t.file.Get(rec.Idx); b[0] != 0x00 {
+		if b := t.file.GetDoc(rec.Idx, len(key)); b[0] != 0x00 {
 			return b
 		}
 	}

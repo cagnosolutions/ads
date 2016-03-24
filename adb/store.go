@@ -1,9 +1,7 @@
 package adb
 
 import (
-	"encoding/json"
 	"errors"
-	"reflect"
 	"sync"
 )
 
@@ -13,42 +11,6 @@ var (
 	ErrNotFound  = errors.New("could not locate; not found")
 	ErrNonPtrVal = errors.New("expected pointer to value, not value")
 )
-
-func encode(k string, v interface{}) ([]byte, error) {
-	data := struct {
-		Key string
-		Val interface{}
-	}{k, v}
-	b, err := json.Marshal(data)
-	if err != nil {
-		Logger(err.Error())
-		return nil, err
-	}
-	if len(b) > SYS_PAGE {
-		Logger(ErrTooLarge.Error())
-		return nil, ErrTooLarge
-	}
-	return b, nil
-}
-
-func decode(b []byte, v interface{}) error {
-	if reflect.ValueOf(v).Kind() != reflect.Ptr {
-		Logger(ErrNonPtrVal.Error())
-		return ErrNonPtrVal
-	}
-	data := struct {
-		Key string
-		Val interface{}
-	}{
-		Val: v, // ptr to value passed in by user
-	}
-	err := json.Unmarshal(b, &data)
-	if err != nil {
-		Logger(err.Error())
-		return err
-	}
-	return nil
-}
 
 type Store struct {
 	index *Tree

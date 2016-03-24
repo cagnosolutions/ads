@@ -55,6 +55,15 @@ func (mf *MappedFile) Get(n int) []byte {
 	return nil
 }
 
+// extracts and returns document from block at offset n
+func (mf *MappedFile) GetDoc(n, kl int) []byte {
+	pos := n * SYS_PAGE
+	if n > -1 && mf.data[pos] != 0x00 {
+		return getdoc(mf.data[pos:pos+SYS_PAGE], kl)
+	}
+	return nil
+}
+
 // removes block at offset n
 func (mf *MappedFile) Del(n int) {
 	mf.used--
