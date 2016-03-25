@@ -1,9 +1,6 @@
 package adb
 
-import (
-	"log"
-	"sync"
-)
+import "sync"
 
 type DB struct {
 	stores map[string]*Store
@@ -78,7 +75,6 @@ func (db *DB) All(store string, ptr interface{}) bool {
 		return false
 	}
 	if err := st.All(ptr); err != nil {
-		log.Fatal("***FOOBAR*** ---> %s\n", err)
 		return false
 	}
 	return true
