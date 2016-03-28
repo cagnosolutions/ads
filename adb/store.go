@@ -75,21 +75,13 @@ func (st *Store) All(ptr interface{}) error {
 	return nil
 }
 
-/*
-func (st *Store) All() []byte {
+func (st *Store) Match(qry string, ptr interface{}) error {
 	st.RLock()
-	size := st.index.Size()
-	recs := make([][]byte, size)
-	for i, rec := range st.index.All() {
-		if i == 0 {
-			recs[i] = append([]byte{'['}, rec.Val...)
-		}
-		if i == size-1 {
-			recs[i] = append(rec.Val, byte(']'))
-		}
-		recs[i] = rec.Val
+	defer st.RUnlock()
+	docs := bytes.Join(st.index.Match([]byte(qry)), []byte{','})
+	docs = append([]byte{'['}, append(docs, byte(']'))...)
+	if err := decode(docs, ptr); err != nil {
+		return err
 	}
-	st.RUnlock()
-	return bytes.Join(recs, []byte{','})
+	return nil
 }
-*/

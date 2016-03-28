@@ -1,12 +1,12 @@
-03/24/16 05:40pm
-----------------
-+ added getdoc() method and helpers
-+ commented up util.go
-+ completed an all method
-+ fixed a few bugs
+DONE: 03/28/16 06:27pm
+----------------------
++ added Match() method which simply finds and returns
+  all documents containing the matched string provided
 
-- wite disk based query method (using
-  the boyer-moore algorithm) to seek
-  and fuzzy match the data. add filters
-  to this fuzzy query method in order
-  to allow for a greater query control.
+TODO: 
+----------------------
+- pack "store.dat" and "store.idx" into "db/store/dat"
+  and "db/store/idx" folders to for better organization
+
+- implement a fuzzy string creator (regex) and couple
+  with the Match() method for a better "query engine"

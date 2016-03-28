@@ -1,6 +1,9 @@
 package adb
 
-import "os"
+import (
+	"bytes"
+	"os"
+)
 
 var (
 	nilPage = make([]byte, SYS_PAGE, SYS_PAGE)
@@ -60,6 +63,17 @@ func (mf *MappedFile) GetDoc(n, kl int) []byte {
 	pos := n * SYS_PAGE
 	if n > -1 && mf.data[pos] != 0x00 {
 		return getdoc(mf.data[pos:pos+SYS_PAGE], kl)
+	}
+	return nil
+}
+
+// extracts and returns document from block at offset n if it contains q
+func (mf *MappedFile) GetDocIfItContains(n, kl int, q []byte) []byte {
+	pos := n * SYS_PAGE
+	if n > -1 && mf.data[pos] != 0x00 {
+		if bytes.Index(mf.data[pos:pos+SYS_PAGE], q) != -1 {
+			return getdoc(mf.data[pos:pos+SYS_PAGE], kl)
+		}
 	}
 	return nil
 }

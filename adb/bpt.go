@@ -217,6 +217,30 @@ func (t *Tree) All() [][]byte {
 	return docs
 }
 
+func (t *Tree) Match(qry []byte) [][]byte {
+	leaf := findFirstLeaf(t.root)
+	var docs [][]byte
+	for {
+		for i := 0; i < leaf.numKeys; i++ {
+			if leaf.ptrs[i] != nil {
+				// get record from leaf
+				rec := leaf.ptrs[i].(*Record)
+				// get doc and append to docs
+				if d := t.file.GetDocIfItContains(rec.Idx, len(rec.Key), qry); d != nil {
+					docs = append(docs, d)
+				}
+			}
+		}
+		// we're at the end, no more leaves to iterate
+		if leaf.ptrs[ORDER-1] == nil {
+			break
+		}
+		// increment/follow pointer to next leaf node
+		leaf = leaf.ptrs[ORDER-1].(*node)
+	}
+	return docs
+}
+
 // Count ...
 func (t *Tree) Count() int {
 	if t.root == nil {

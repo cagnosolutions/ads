@@ -89,6 +89,17 @@ func (db *DB) Del(store, key string) bool {
 	return true
 }
 
+func (db *DB) Match(store, qry string, ptr interface{}) bool {
+	st, ok := db.namespace(store)
+	if !ok {
+		return false
+	}
+	if err := st.Match(qry, ptr); err != nil {
+		return false
+	}
+	return true
+}
+
 func (db *DB) Close() {
 	db.Lock()
 	defer db.Unlock()
