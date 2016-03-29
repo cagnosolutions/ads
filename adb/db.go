@@ -69,12 +69,34 @@ func (db *DB) Get(store, key string, ptr interface{}) bool {
 	return true
 }
 
+func (db *DB) All(store string, ptr interface{}) bool {
+	st, ok := db.namespace(store)
+	if !ok {
+		return false
+	}
+	if err := st.All(ptr); err != nil {
+		return false
+	}
+	return true
+}
+
 func (db *DB) Del(store, key string) bool {
 	st, ok := db.namespace(store)
 	if !ok {
 		return false
 	}
 	st.Del(key)
+	return true
+}
+
+func (db *DB) Match(store, qry string, ptr interface{}) bool {
+	st, ok := db.namespace(store)
+	if !ok {
+		return false
+	}
+	if err := st.Match(qry, ptr); err != nil {
+		return false
+	}
 	return true
 }
 
@@ -85,16 +107,3 @@ func (db *DB) Close() {
 		st.index.Close()
 	}
 }
-
-/*
-func (db *DB) All(store string, ptr interface{}) bool {
-	st, ok := db.namespace(store)
-	if !ok {
-		return false
-	}
-	if err := json.Unmarshal(st.All(), ptr); err != nil {
-		return logger(err)
-	}
-	return true
-}
-*/

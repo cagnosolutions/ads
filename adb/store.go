@@ -1,9 +1,8 @@
 package adb
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
-	"reflect"
 	"sync"
 )
 
@@ -13,42 +12,6 @@ var (
 	ErrNotFound  = errors.New("could not locate; not found")
 	ErrNonPtrVal = errors.New("expected pointer to value, not value")
 )
-
-func encode(k string, v interface{}) ([]byte, error) {
-	data := struct {
-		Key string
-		Val interface{}
-	}{k, v}
-	b, err := json.Marshal(data)
-	if err != nil {
-		Logger(err.Error())
-		return nil, err
-	}
-	if len(b) > SYS_PAGE {
-		Logger(ErrTooLarge.Error())
-		return nil, ErrTooLarge
-	}
-	return b, nil
-}
-
-func decode(b []byte, v interface{}) error {
-	if reflect.ValueOf(v).Kind() != reflect.Ptr {
-		Logger(ErrNonPtrVal.Error())
-		return ErrNonPtrVal
-	}
-	data := struct {
-		Key string
-		Val interface{}
-	}{
-		Val: v, // ptr to value passed in by user
-	}
-	err := json.Unmarshal(b, &data)
-	if err != nil {
-		Logger(err.Error())
-		return err
-	}
-	return nil
-}
 
 type Store struct {
 	index *Tree
@@ -83,38 +46,42 @@ func (st *Store) Set(k string, v interface{}) error {
 	return nil
 }
 
-func (st *Store) Get(k string, v interface{}) error {
+func (st *Store) Get(k string, ptr interface{}) error {
 	st.RLock()
 	defer st.RUnlock()
 	if doc := st.index.GetDoc([]byte(k)); doc != nil {
-		if err := decode(doc, v); err != nil {
+		if err := decode(doc, ptr); err != nil {
 			return err
 		}
+		return nil
 	}
 	return ErrNotFound
 }
-
-/*
-func (st *Store) All() []byte {
-	st.RLock()
-	size := st.index.Size()
-	recs := make([][]byte, size)
-	for i, rec := range st.index.All() {
-		if i == 0 {
-			recs[i] = append([]byte{'['}, rec.Val...)
-		}
-		if i == size-1 {
-			recs[i] = append(rec.Val, byte(']'))
-		}
-		recs[i] = rec.Val
-	}
-	st.RUnlock()
-	return bytes.Join(recs, []byte{','})
-}
-*/
 
 func (st *Store) Del(k string) {
 	st.Lock()
 	st.index.Del([]byte(k))
 	st.Unlock()
+}
+
+func (st *Store) All(ptr interface{}) error {
+	st.RLock()
+	defer st.RUnlock()
+	docs := bytes.Join(st.index.All(), []byte{','})
+	docs = append([]byte{'['}, append(docs, byte(']'))...)
+	if err := decode(docs, ptr); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (st *Store) Match(qry string, ptr interface{}) error {
+	st.RLock()
+	defer st.RUnlock()
+	docs := bytes.Join(st.index.Match([]byte(qry)), []byte{','})
+	docs = append([]byte{'['}, append(docs, byte(']'))...)
+	if err := decode(docs, ptr); err != nil {
+		return err
+	}
+	return nil
 }
